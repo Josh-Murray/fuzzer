@@ -1,9 +1,11 @@
 package main
 
 import (
+	"encoding/csv"
 	"encoding/json"
 	"encoding/xml"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"log"
 	"os"
@@ -24,6 +26,23 @@ func isValidXML(data []byte) bool {
 	}
 	return false
 	//return xml.Unmarshal(data, new(interface{})) != nil
+}
+
+func isValidCSV(file string) bool {
+	csvFile, _ := os.Open(file)
+	reader := csv.NewReader(csvFile)
+
+	for {
+		line, err := reader.Read()
+		if err == io.EOF {
+			break
+		} else if err != nil {
+			log.Println(err)
+			return false
+		}
+		fmt.Println(line, "with length", len(line))
+	}
+	return true
 }
 
 func detectType(file string) {
@@ -51,8 +70,13 @@ func detectType(file string) {
 		fmt.Println(xml.Unmarshal(data, new(interface{})))
 	}
 
+	if isValidCSV(file) {
+		fmt.Print(" valid csv")
+	} else {
+		fmt.Print("invalid csv")
+	}
 }
 
 func main() {
-	detectType("cd_catalog.xml")
+	detectType("invalid.csv")
 }
