@@ -14,13 +14,14 @@ type Mutator struct {
    * num mutations
    * etc
    */
+  out_chan chan TestCase
   rng *rand.Rand
 
 }
 // TODO work out configurables, they might be needed here
-func createMutator() Mutator {
+func createMutator(out chan TestCase) Mutator {
   r := rand.New(rand.NewSource(time.Now().Unix()))
-  return Mutator{rng: r}
+  return Mutator{rng: r, out_chan: out}
 }
 
 func (m Mutator)flip_bits(ts * TestCase){
@@ -113,6 +114,7 @@ func (m Mutator) interesting_byte(ts * TestCase){
 
 func (m Mutator)mutate(ts * TestCase){
   nMutations := m.rng.Intn(8);
+  nMutations = 3;
   for i:=0; i < nMutations; i++{
     selection := m.rng.Intn(5);
     // TODO work out configurables, they might be needed here
@@ -132,4 +134,5 @@ func (m Mutator)mutate(ts * TestCase){
       //dunno
     }
   }
+  m.out_chan <- *ts
 }

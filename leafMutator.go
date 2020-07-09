@@ -141,11 +141,11 @@ func mutateHex(s string) string {
 	change += fmt.Sprint("Mutating some hex values")
 	return mutateObj(s, isAHex, interestingHex)
 }
-
+/*
 func main() {
 	s2 := "This 22 is -22 a test  222 of 1.1 integers 333 222 333"
 	o3 := mutateFloat(s2)
 	fmt.Println(change)
 	fmt.Println(o3)
 
-}
+}*/
