@@ -108,6 +108,15 @@ func mutateShuffle(s string) string {
 	return compose(o)
 }
 
+func mutateReverse(s string) string {
+	o := decompose(s)
+	change += fmt.Sprint("Reversing entire thing")
+	for left, right := 0, len(o)-1; left < right; left, right = left+1, right-1 {
+		o[left], o[right] = o[right], o[left]
+	}
+	return compose(o)
+}
+
 func isAHex(w string) bool {
 	_, err := strconv.ParseFloat(w, 1)
 
