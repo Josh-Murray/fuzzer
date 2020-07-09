@@ -100,9 +100,18 @@ func mutateFloat(s1 string) string {
 	return mutateObj(s1, isAFloat, interestingFloat)
 }
 
+func mutateShuffle(s string) string {
+	o := decompose(s)
+	change += fmt.Sprint("Suffling")
+	s1 := rand.NewSource(time.Now().UnixNano() * int64(1))
+	r1 := rand.New(s1)
+	r1.Shuffle(len(o), func(i, j int) { o[i], o[j] = o[j], o[i] })
+	return compose(o)
+}
+
 func main() {
 	s2 := "This 22 is -22 a test  222 of 1.1 integers 333 222 333"
-	o3 := mutateFloat(s2)
+	o3 := mutateShuffle(s2)
 	fmt.Println(change)
 	fmt.Println(o3)
 
