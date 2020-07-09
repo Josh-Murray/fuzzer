@@ -74,6 +74,7 @@ func mutateObj(s string, cnd func(string) bool, rplc func(int) string) string {
 }
 
 func mutateInts(s1 string) string {
+	change += fmt.Sprint("Mutating some ints")
 	return mutateObj(s1, isAInt, interestingInteger)
 }
 
@@ -96,6 +97,7 @@ func interestingFloat(n int) string {
 }
 
 func mutateFloat(s1 string) string {
+	change += fmt.Sprint("Mutating some floats")
 	return mutateObj(s1, isAFloat, interestingFloat)
 }
 
@@ -136,6 +138,7 @@ func interestingHex(i int) string {
 }
 
 func mutateHex(s string) string {
+	change += fmt.Sprint("Mutating some hex values")
 	return mutateObj(s, isAHex, interestingHex)
 }
 
