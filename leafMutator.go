@@ -69,11 +69,12 @@ func interestingInt() int {
 	return candidates[r1.Intn(len(candidates))]
 }
 
-func replaceRandInt(original string) (string, string) {
+func replaceRandInts(original string) (string, string) {
 	words := strings.Split(original, " ")
 	locations := make([]int, 0)
 	s1 := rand.NewSource(time.Now().UnixNano())
 	r1 := rand.New(s1)
+	var change string
 
 	//find location of all integers in the input
 	for i, word := range words {
@@ -82,11 +83,20 @@ func replaceRandInt(original string) (string, string) {
 		}
 	}
 
-	changeLocation := locations[r1.Intn(len(locations))]
-	oldVal := words[changeLocation]
-	newVal := fmt.Sprintf("%v", interestingInt())
-	words[changeLocation] = newVal
-	change := fmt.Sprintln("replaceRandInt - location:", changeLocation, "from:", oldVal, "to: ", newVal)
+	//shuffle the locations
+	r1.Shuffle(len(locations), func(i, j int) { locations[i], locations[j] = locations[j], locations[i] })
+
+	//pick a random number of locations to change
+	numToChange := r1.Intn(len(locations))
+	changeLocs := locations[:numToChange]
+	change = fmt.Sprintln("Replacing ints:", changeLocs)
+	for i, location := range changeLocs {
+		oldVal := words[location]
+		newVal := fmt.Sprintf("%v", interestingInt())
+		words[location] = newVal
+		change += fmt.Sprintln("replaceRandInt", i, " - location:", location, "from:", oldVal, "to: ", newVal)
+	}
+
 	newString := strings.Join(words, " ")
 	return newString, change
 }
@@ -95,7 +105,7 @@ func main() {
 	var myInput string = "This -1 is 0x10f test -1.23 1090 input 1 10 1.30 with funn3y characters"
 	fmt.Println("Original String:", myInput)
 	//smartReplaceRandom(myInput)
-	result, msg := replaceRandInt(myInput)
+	result, msg := replaceRandInts(myInput)
 	fmt.Print(msg)
 	fmt.Println(result)
 }
