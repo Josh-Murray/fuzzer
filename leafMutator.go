@@ -79,10 +79,9 @@ func mutateInts(s1 string) string {
 
 func isAFloat(w string) bool {
 
-	if _, err := strconv.Atoi(w); err == nil {
-		return false
-	}
-	if _, err := strconv.ParseFloat(w, 1); err == nil {
+	_, err := strconv.ParseFloat(w, 1)
+
+	if !isAInt(w) && err == nil {
 		return true
 	}
 	return false
@@ -109,9 +108,31 @@ func mutateShuffle(s string) string {
 	return compose(o)
 }
 
+func isAHex(w string) bool {
+	_, err := strconv.ParseFloat(w, 1)
+
+	if !isAFloat(w) && err == nil {
+		return true
+	}
+	return false
+
+}
+
+func interestingHex(i int) string {
+	candidates := []string{"0", "0x", "0x00000000", "0x0000000", "0xFFFFFFFF", "0x80000000", "0xdeadbeef", "01234567", "0xDEADBEEF", "0x0000000G"}
+	s1 := rand.NewSource(time.Now().UnixNano() * int64(i))
+	r1 := rand.New(s1)
+
+	return candidates[r1.Intn(len(candidates))]
+}
+
+func mutateHex(s string) string {
+	return mutateObj(s, isAHex, interestingHex)
+}
+
 func main() {
 	s2 := "This 22 is -22 a test  222 of 1.1 integers 333 222 333"
-	o3 := mutateShuffle(s2)
+	o3 := mutateFloat(s2)
 	fmt.Println(change)
 	fmt.Println(o3)
 
