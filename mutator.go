@@ -13,17 +13,17 @@ type Mutator struct {
 	 * num mutations
 	 * etc
 	 */
-	out_chan chan TestCase
+	outChan chan TestCase
 	rng      *rand.Rand
 }
 
 // TODO work out configurables, they might be needed here
 func createMutator(out chan TestCase) Mutator {
 	r := rand.New(rand.NewSource(time.Now().Unix()))
-	return Mutator{rng: r, out_chan: out}
+	return Mutator{rng: r, outChan: out}
 }
 
-func (m Mutator) flip_bits(ts *TestCase) {
+func (m Mutator) flipBits(ts *TestCase) {
 	// flip bit in 10% of bytes, could change to $config% bytes or randRange bytes
 	size := float64(len(ts.input)) * 0.1
 	nbytes := int(size)
@@ -39,7 +39,7 @@ func (m Mutator) flip_bits(ts *TestCase) {
 	}
 }
 
-func (m Mutator) flip_bytes(ts *TestCase) {
+func (m Mutator) flipBytes(ts *TestCase) {
 	// flip 10% of bytes
 	size := float64(len(ts.input)) * 0.1
 	nbytes := int(size)
@@ -58,7 +58,7 @@ func (m Mutator) flip_bytes(ts *TestCase) {
 /* should monitor the probability this gets called to ensure the input
  * pool doesnt converge to 0 length inputs
  */
-func (m Mutator) delete_slice(ts *TestCase) {
+func (m Mutator) deleteSlice(ts *TestCase) {
 	// used len too much, use a variable instead
 	length := len(ts.input)
 	if length == 0 {
@@ -78,7 +78,7 @@ func (m Mutator) delete_slice(ts *TestCase) {
 /* should monitor the probability this gets called to ensure the input
  * pool doesnt become too long
  */
-func (m Mutator) duplicate_slice(ts *TestCase) {
+func (m Mutator) duplicateSlice(ts *TestCase) {
 	// used len too much, use a variable instead
 	length := len(ts.input)
 
@@ -98,7 +98,7 @@ func (m Mutator) duplicate_slice(ts *TestCase) {
 }
 
 // TODO add a int16 and int32 equivalent of this
-func (m Mutator) interesting_byte(ts *TestCase) {
+func (m Mutator) interestingByte(ts *TestCase) {
 	if len(ts.input) == 0 {
 		return
 	}
@@ -118,19 +118,19 @@ func (m Mutator) mutate(ts *TestCase) {
 		// TODO work out configurables, they might be needed here
 		switch selection {
 		case 0:
-			m.flip_bits(ts)
+			m.flipBits(ts)
 		case 1:
-			m.flip_bytes(ts)
+			m.flipBytes(ts)
 		case 2:
-			m.delete_slice(ts)
+			m.deleteSlice(ts)
 		case 3:
-			m.duplicate_slice(ts)
+			m.duplicateSlice(ts)
 		case 4:
-			m.interesting_byte(ts)
+			m.interestingByte(ts)
 		default:
 			fmt.Printf("[WARN] mutator broken")
 			//dunno
 		}
 	}
-	m.out_chan <- *ts
+	m.outChan <- *ts
 }
