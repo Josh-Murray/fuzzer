@@ -77,6 +77,6 @@ func detectType(file string) {
 	}
 }
 
-func main() {
-	detectType("invalid.csv")
-}
+//func main() {
+//	detectType("mutator.go")
+//}
