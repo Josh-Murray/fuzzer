@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"math"
 	"math/rand"
 	"strconv"
 	"strings"
@@ -76,9 +77,32 @@ func mutateInts(s1 string) string {
 	return mutateObj(s1, isAInt, interestingInteger)
 }
 
+func isAFloat(w string) bool {
+
+	if _, err := strconv.Atoi(w); err == nil {
+		return false
+	}
+	if _, err := strconv.ParseFloat(w, 1); err == nil {
+		return true
+	}
+	return false
+}
+
+func interestingFloat(n int) string {
+	candidates := []float32{0, -0, 1, -1, float32(math.Inf(1)), float32(math.Inf(1)), float32(math.NaN())}
+	s1 := rand.NewSource(time.Now().UnixNano() * int64(n))
+	r1 := rand.New(s1)
+	result := candidates[r1.Intn(len(candidates))]
+	return fmt.Sprintf("%v", result)
+}
+
+func mutateFloat(s1 string) string {
+	return mutateObj(s1, isAFloat, interestingFloat)
+}
+
 func main() {
 	s2 := "This 22 is -22 a test  222 of 1.1 integers 333 222 333"
-	o3 := mutateInts(s2)
+	o3 := mutateFloat(s2)
 	fmt.Println(change)
 	fmt.Println(o3)
 
