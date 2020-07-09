@@ -18,7 +18,12 @@ func check(e error) {
 }
 
 func isValidXML(data []byte) bool {
-	return xml.Unmarshal(data, new(interface{})) != nil
+	err := xml.Unmarshal(data, new(interface{}))
+	if err == nil {
+		return true
+	}
+	return false
+	//return xml.Unmarshal(data, new(interface{})) != nil
 }
 
 func detectType(file string) {
@@ -29,7 +34,7 @@ func detectType(file string) {
 
 	data, err := ioutil.ReadFile(file)
 	check(err)
-
+	//fmt.Println(data)
 	ext := filepath.Ext(file)
 	fmt.Print("Extension is: ", ext)
 
@@ -43,6 +48,11 @@ func detectType(file string) {
 		fmt.Print(" valid xml")
 	} else {
 		fmt.Print(" invalid xml")
+		fmt.Println(xml.Unmarshal(data, new(interface{})))
 	}
 
+}
+
+func main() {
+	detectType("cd_catalog.xml")
 }

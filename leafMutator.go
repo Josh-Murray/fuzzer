@@ -142,6 +142,7 @@ func mutateHex(s string) string {
 	return mutateObj(s, isAHex, interestingHex)
 }
 
+/*
 func main() {
 	s2 := "This 22 is -22 a test  222 of 1.1 integers 333 222 333"
 	o3 := mutateFloat(s2)
@@ -149,3 +150,4 @@ func main() {
 	fmt.Println(o3)
 
 }
+*/
