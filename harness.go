@@ -45,7 +45,7 @@ func harness(id int, cmd string,
 
 		procCmd.Wait()
 
-		/* Report segfaults and ignore other exit causes. */
+		// Report segfaults and ignore other exit causes.
 		waitStatus := procCmd.ProcessState.Sys().(syscall.WaitStatus)
 		if waitStatus.Signal() == syscall.SIGSEGV {
 			log.Printf("Harness with id %d crashed process with pid %d\n",
