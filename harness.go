@@ -17,6 +17,7 @@ func harness(id int, cmd string,
 	interestCases chan<- TestCase) {
 
 	for inputCase := range inputCases {
+		var err error
 		procCmd := exec.Command(cmd)
 		procStdin, err := procCmd.StdinPipe()
 		if err != nil {
@@ -24,23 +25,24 @@ func harness(id int, cmd string,
 				id, err.Error())
 		}
 
-		err := procCmd.Start()
+		err = procCmd.Start()
 		if err != nil {
 			log.Fatalf("Harness with id %d failed to start program: %s",
 				id, err.Error())
 		}
 
 		procPid := procCmd.Process.Pid
-		_, err := procStdin.Write(inputCase.input)
+		_, err = procStdin.Write(inputCase.input)
 		if err != nil {
 			log.Fatalf("Harness with id %d failed to write to program: %s",
 				id, err.Error())
 		}
 
 		// Process may need pipe closed to continue.
-		err := procStdin.Close()
+		err = procStdin.Close()
 		if err != nil {
-			log.Printf("Harness with id %d failed to manually close stdin pipe.\n")
+			log.Printf("Harness with id %d failed to manually close stdin pipe.\n",
+				id)
 		}
 
 		procCmd.Wait()
@@ -79,7 +81,7 @@ func crashReport(crashCase TestCase) {
 		log.Println(string(crashCase.input))
 	}
 
-	err := f.Close()
+	err = f.Close()
 	if err != nil {
 		log.Fatal(err)
 	}
