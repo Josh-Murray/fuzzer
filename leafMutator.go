@@ -9,6 +9,8 @@ import (
 	"time"
 )
 
+var delimiter string = " "
+
 var change string
 
 func replace(o []string, i int, v string) {
@@ -51,7 +53,7 @@ func interestingInteger(i int) string {
 }
 
 func mutateObj(s string, cnd func(string) bool, rplc func(int) string) string {
-	o := decompose(s, " ")
+	o := decompose(s, delimiter)
 	c := identifyCandidates(o, cnd)
 
 	seed := rand.NewSource(time.Now().UnixNano())
@@ -69,7 +71,7 @@ func mutateObj(s string, cnd func(string) bool, rplc func(int) string) string {
 		replace(o, location, rplc(i))
 	}
 
-	return compose(o, " ")
+	return compose(o, delimiter)
 
 }
 
@@ -102,21 +104,21 @@ func mutateFloat(s1 string) string {
 }
 
 func mutateShuffle(s string) string {
-	o := decompose(s)
+	o := decompose(s, delimiter)
 	change += fmt.Sprint("Suffling")
 	s1 := rand.NewSource(time.Now().UnixNano() * int64(1))
 	r1 := rand.New(s1)
 	r1.Shuffle(len(o), func(i, j int) { o[i], o[j] = o[j], o[i] })
-	return compose(o)
+	return compose(o, delimiter)
 }
 
 func mutateReverse(s string) string {
-	o := decompose(s, " ")
+	o := decompose(s, delimiter)
 	change += fmt.Sprint("Reversing entire thing")
 	for left, right := 0, len(o)-1; left < right; left, right = left+1, right-1 {
 		o[left], o[right] = o[right], o[left]
 	}
-	return compose(o, " ")
+	return compose(o, delimiter)
 }
 
 func isAHex(w string) bool {
