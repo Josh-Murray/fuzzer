@@ -1,9 +1,11 @@
 package main
 
 import (
+	"io/ioutil"
 	"log"
 	"os"
 	"os/exec"
+	"strings"
 	"syscall"
 )
 
@@ -21,20 +23,27 @@ func harness(id int, cmd string,
 		procCmd := exec.Command(cmd)
 		procStdin, err := procCmd.StdinPipe()
 		if err != nil {
-			log.Fatalf("Harness with id %d failed to connect stdin pipe: %s",
+			log.Fatalf("Harness with id %d failed to connect stdin pipe: %s\n",
 				id, err.Error())
+		}
+
+		procStderr, err := procCmd.StderrPipe()
+		if err != nil {
+			log.Fatalf("Harness with id %d failed to connect stderr pipe: %s\n",
+				id, err.Error())
+
 		}
 
 		err = procCmd.Start()
 		if err != nil {
-			log.Fatalf("Harness with id %d failed to start program: %s",
+			log.Fatalf("Harness with id %d failed to start program: %s\n",
 				id, err.Error())
 		}
 
 		procPid := procCmd.Process.Pid
 		_, err = procStdin.Write(inputCase.input)
 		if err != nil {
-			log.Fatalf("Harness with id %d failed to write to program: %s",
+			log.Fatalf("Harness with id %d failed to write to program: %s\n",
 				id, err.Error())
 		}
 
@@ -45,11 +54,23 @@ func harness(id int, cmd string,
 				id)
 		}
 
+		procErr, err := ioutil.ReadAll(procStderr)
+		if err != nil {
+			log.Fatalf("Harness with id %d failed to read program stderr\n",
+				id)
+		}
+
 		procCmd.Wait()
 
-		// Report segfaults and ignore other exit causes.
+		// Check program stderr for ASAN crash output
+		var asanCrash bool = false
+		if strings.Contains(string(procErr), "ERROR: AddressSanitizer") {
+			asanCrash = true
+		}
+
+		// Report segfaults and ASAN crashes, ignore other exit causes.
 		waitStatus := procCmd.ProcessState.Sys().(syscall.WaitStatus)
-		if waitStatus.Signal() == syscall.SIGSEGV {
+		if waitStatus.Signal() == syscall.SIGSEGV || asanCrash == true {
 			log.Printf("Harness with id %d crashed process with pid %d\n",
 				id, procPid)
 			crashReport(inputCase)
