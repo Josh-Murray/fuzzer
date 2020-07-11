@@ -16,12 +16,12 @@ func replace(o []string, i int, v string) {
 	o[i] = v
 }
 
-func decompose(s string) []string {
-	return strings.Split(s, " ")
+func decompose(s, d string) []string {
+	return strings.Split(s, d)
 }
 
-func compose(o []string) string {
-	return strings.Join(o, " ")
+func compose(o []string, d string) string {
+	return strings.Join(o, d)
 }
 
 func identifyCandidates(o []string, s func(string) bool) []int {
@@ -51,7 +51,7 @@ func interestingInteger(i int) string {
 }
 
 func mutateObj(s string, cnd func(string) bool, rplc func(int) string) string {
-	o := decompose(s)
+	o := decompose(s, " ")
 	c := identifyCandidates(o, cnd)
 
 	seed := rand.NewSource(time.Now().UnixNano())
@@ -69,7 +69,7 @@ func mutateObj(s string, cnd func(string) bool, rplc func(int) string) string {
 		replace(o, location, rplc(i))
 	}
 
-	return compose(o)
+	return compose(o, " ")
 
 }
 
@@ -111,12 +111,12 @@ func mutateShuffle(s string) string {
 }
 
 func mutateReverse(s string) string {
-	o := decompose(s)
+	o := decompose(s, " ")
 	change += fmt.Sprint("Reversing entire thing")
 	for left, right := 0, len(o)-1; left < right; left, right = left+1, right-1 {
 		o[left], o[right] = o[right], o[left]
 	}
-	return compose(o)
+	return compose(o, " ")
 }
 
 func isAHex(w string) bool {
@@ -142,11 +142,10 @@ func mutateHex(s string) string {
 	return mutateObj(s, isAHex, interestingHex)
 }
 
-/*
-func main() {
+func testLeaf() {
 	s2 := "This 22 is -22 a test  222 of 1.1 integers 333 222 333"
 	o3 := mutateFloat(s2)
 	fmt.Println(change)
 	fmt.Println(o3)
 
-}*/
+}
