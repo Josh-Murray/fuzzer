@@ -23,7 +23,7 @@ func createMutator(out chan TestCase, seed int64) Mutator {
 }
 
 func (m Mutator) flipBits(ts *TestCase) {
-	// flip bit in 10% of bytes, could change to $config% bytes or randRange bytes
+	// flip bit in N% of bytes, could change to $config% bytes or randRange bytes
 	size := float64(len(ts.input)) * 0.05
 	nbytes := int(size)
 	if nbytes == 0 {
@@ -39,7 +39,7 @@ func (m Mutator) flipBits(ts *TestCase) {
 }
 
 func (m Mutator) flipBytes(ts *TestCase) {
-	// flip 10% of bytes
+	// flip N% of bytes
 	size := float64(len(ts.input)) * 0.05
 	nbytes := int(size)
 	if nbytes == 0 {
