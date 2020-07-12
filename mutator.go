@@ -3,7 +3,6 @@ package main
 import (
 	"fmt"
 	"math/rand"
-	"time"
 )
 
 type Mutator struct {
@@ -14,18 +13,18 @@ type Mutator struct {
 	 * etc
 	 */
 	outChan chan TestCase
-	rng      *rand.Rand
+	rng     *rand.Rand
 }
 
 // TODO work out configurables, they might be needed here
-func createMutator(out chan TestCase) Mutator {
-	r := rand.New(rand.NewSource(time.Now().Unix()))
+func createMutator(out chan TestCase, seed int64) Mutator {
+	r := rand.New(rand.NewSource(seed))
 	return Mutator{rng: r, outChan: out}
 }
 
 func (m Mutator) flipBits(ts *TestCase) {
 	// flip bit in 10% of bytes, could change to $config% bytes or randRange bytes
-	size := float64(len(ts.input)) * 0.1
+	size := float64(len(ts.input)) * 0.05
 	nbytes := int(size)
 	if nbytes == 0 {
 		nbytes = 1
@@ -41,7 +40,7 @@ func (m Mutator) flipBits(ts *TestCase) {
 
 func (m Mutator) flipBytes(ts *TestCase) {
 	// flip 10% of bytes
-	size := float64(len(ts.input)) * 0.1
+	size := float64(len(ts.input)) * 0.05
 	nbytes := int(size)
 	if nbytes == 0 {
 		nbytes = 1
@@ -112,7 +111,6 @@ func (m Mutator) interestingByte(ts *TestCase) {
 
 func (m Mutator) mutate(ts *TestCase) {
 	nMutations := m.rng.Intn(8)
-	nMutations = 3
 	for i := 0; i < nMutations; i++ {
 		selection := m.rng.Intn(5)
 		// TODO work out configurables, they might be needed here

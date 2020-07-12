@@ -24,7 +24,6 @@ func harness(id int, cmd string,
 			log.Fatalf("Harness with id %d failed to connect stdin pipe: %s",
 				id, err.Error())
 		}
-
 		err = procCmd.Start()
 		if err != nil {
 			log.Fatalf("Harness with id %d failed to start program: %s",
@@ -62,7 +61,7 @@ func harness(id int, cmd string,
  * the input inside crashCase
  */
 func crashReport(crashCase TestCase) {
-	f, err := os.OpenFile("bad.txt", os.O_WRONLY|os.O_CREATE, 0644)
+	f, err := os.OpenFile("bad.txt", os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0644)
 	// Log the crashing input on any file operation failure.
 	if err != nil {
 		log.Println("Failed to create crash output file. Crashing output:")
@@ -80,7 +79,6 @@ func crashReport(crashCase TestCase) {
 		log.Println("Failed to write full output to crash file. Crashing output:")
 		log.Println(string(crashCase.input))
 	}
-
 	err = f.Close()
 	if err != nil {
 		log.Fatal(err)
