@@ -22,6 +22,81 @@ func createMutator(out chan TestCase, seed int64) Mutator {
 	return Mutator{rng: r, outChan: out}
 }
 
+func replace(o []string, i int, v string) {
+	change += fmt.Sprintln("Replacing:", i, " ", o[i], "with", v)
+	o[i] = v
+}
+
+func decompose(s string) []string {
+	return strings.Split(s, " ")
+}
+
+func compose(o []string) string {
+	return strings.Join(o, " ")
+}
+
+/*
+ * takes in a slice of strings o and identifies whether or not
+ * each string in the slice can be parsed by the function s 
+ * (isAFloat, isAInt, isAHex).
+ * returns a slice of indexes corresponding to the strings in o
+ * which can successfully be parsed by the function s
+ */
+func identifyCandidates(o []string, s func(string) bool) []int {
+	candidates := make([]int, 1)
+	for i, obj := range o {
+		if s(obj) {
+			candidates = append(candidates, i)
+		}
+	}
+	return candidates
+}
+
+func isAInt(o string) bool {
+	if _, err := strconv.Atoi(o); err == nil {
+		return true
+	}
+
+	return false
+}
+
+func interestingInteger(i int) string {
+	candidates := []string{"0", "-1", "-100", "100"}
+	s1 := rand.NewSource(time.Now().UnixNano() * int64(i))
+	r1 := rand.New(s1)
+
+	return candidates[r1.Intn(len(candidates))]
+}
+
+
+func mutateObj(s string, cnd func(string) bool, rplc func(int) string) string {
+	o := decompose(s)
+	c := identifyCandidates(o, cnd)
+
+	seed := rand.NewSource(time.Now().UnixNano())
+	rand := rand.New(seed)
+
+	//shuffle the  candidate locations
+	rand.Shuffle(len(c), func(i, j int) { c[i], c[j] = c[j], c[i] })
+
+	//pick a random number of locations to change
+	numToChange := rand.Intn(len(c))
+	changeLocs := c[:numToChange]
+	change += fmt.Sprintln("Replacing:", changeLocs)
+
+	for i, location := range changeLocs {
+		replace(o, location, rplc(i))
+	}
+
+	return compose(o)
+
+}
+
+func mutateInts(s1 string) string {
+	change += fmt.Sprint("Mutating some ints")
+	return mutateObj(s1, isAInt, interestingInteger)
+}
+
 func (m Mutator) flipBits(ts *TestCase) {
 	// flip bit in N% of bytes, could change to $config% bytes or randRange bytes
 	size := float64(len(ts.input)) * 0.05
