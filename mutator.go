@@ -43,7 +43,7 @@ func compose(o []string) string {
  * which can successfully be parsed by the function s
  */
 func identifyCandidates(o []string, s func(string) bool) []int {
-	candidates := make([]int, 1)
+	var candidates []int
 	for i, obj := range o {
 		if s(obj) {
 			candidates = append(candidates, i)
