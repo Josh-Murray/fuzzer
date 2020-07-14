@@ -22,7 +22,7 @@ func createMutator(out chan TestCase, seed int64) Mutator {
 	return Mutator{rng: r, outChan: out}
 }
 
-func replace(o []string, i int, v string) {
+func replace(o []string, change string, i int, v string) {
 	change += fmt.Sprintln("Replacing:", i, " ", o[i], "with", v)
 	o[i] = v
 }
@@ -75,8 +75,8 @@ func interestingInteger(i int) string {
  * mutation on. 
  * TODO: COMPLETE FUNCTION DESCRIPTION
  */
-func mutateObj(s string, cnd func(string) bool, rplc func(int) string) string {
-	o := decompose(s)
+func mutateObj(ts *TestCase, cnd func(string) bool, rplc func(int) string) {
+	o := decompose(string(ts.input))
 	c := identifyCandidates(o, cnd)
 
 	seed := rand.NewSource(time.Now().UnixNano())
@@ -88,21 +88,21 @@ func mutateObj(s string, cnd func(string) bool, rplc func(int) string) string {
 	//pick a random number of locations to change
 	numToChange := rand.Intn(len(c))
 	changeLocs := c[:numToChange]
-	change += fmt.Sprintln("Replacing:", changeLocs)
+	change := fmt.Sprintln("Replacing:", changeLocs)
 
 	for i, location := range changeLocs {
 		// replace the string at index location with the 
 		// string returned from func rplc(i)
-		replace(o, location, rplc(i))
+		replace(o, change, location, rplc(i))
 	}
 
-	return compose(o)
+	ts.changes = append(ts.changes, change)
+	ts.input = byte[]compose(o)
 
 }
 
-func mutateInts(s1 string) string {
-	change += fmt.Sprint("Mutating some ints")
-	return mutateObj(s1, isAInt, interestingInteger)
+func (m Mutator) mutateInts(ts *TestCase) {
+	mutateObj(ts, isAInt, interestingInteger)
 }
 
 func (m Mutator) flipBits(ts *TestCase) {
@@ -195,7 +195,8 @@ func (m Mutator) interestingByte(ts *TestCase) {
 func (m Mutator) mutate(ts *TestCase) {
 	nMutations := m.rng.Intn(8)
 	for i := 0; i < nMutations; i++ {
-		selection := m.rng.Intn(5)
+		//selection := m.rng.Intn(5)
+		selection := 5
 		// TODO work out configurables, they might be needed here
 		switch selection {
 		case 0:
@@ -208,6 +209,8 @@ func (m Mutator) mutate(ts *TestCase) {
 			m.duplicateSlice(ts)
 		case 4:
 			m.interestingByte(ts)
+		case 5:
+			m.mutateInts(ts)
 		default:
 			fmt.Printf("[WARN] mutator broken")
 			//dunno
