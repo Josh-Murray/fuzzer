@@ -3,6 +3,9 @@ package main
 import (
 	"fmt"
 	"math/rand"
+	"strconv"
+	"strings"
+	"time"
 )
 
 type Mutator struct {
