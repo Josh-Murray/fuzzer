@@ -25,8 +25,10 @@ func createMutator(out chan TestCase, seed int64) Mutator {
 	return Mutator{rng: r, outChan: out}
 }
 
-func replace(o []string, change string, i int, v string) {
-	change += fmt.Sprintln("Replacing:", i, " ", o[i], "with", v)
+
+func replace(o []string, changes *[]string, i int, v string) {
+	c := fmt.Sprintf("Replacing input[%d]=%s with %s\n",i ,o[i], v)
+	*changes = append(*changes, c)
 	o[i] = v
 }
 
@@ -85,22 +87,23 @@ func mutateObj(ts *TestCase, cnd func(string) bool, rplc func(int) string) {
 	seed := rand.NewSource(time.Now().UnixNano())
 	rand := rand.New(seed)
 
-	//shuffle the  candidate locations
+	/* shuffle the  candidate locations */
 	rand.Shuffle(len(c), func(i, j int) { c[i], c[j] = c[j], c[i] })
 
-	//pick a random number of locations to change
-	numToChange := rand.Intn(len(c))
+	/* pick a random number of locations to change
+	 * add 1 to the random int generated so the numToChange is always
+	 * greater than 0. */
+	numToChange := rand.Intn(len(c)) + 1
+	fmt.Println("num to change", numToChange)
 	changeLocs := c[:numToChange]
-	change := fmt.Sprintln("Replacing:", changeLocs)
 
 	for i, location := range changeLocs {
-		// replace the string at index location with the 
-		// string returned from func rplc(i)
-		replace(o, change, location, rplc(i))
+		/* replace the string at index location with the 
+		 * string returned from func rplc(i) */
+		replace(o, &ts.changes, location, rplc(i))
 	}
 
-	ts.changes = append(ts.changes, change)
-	ts.input = byte[]compose(o)
+	ts.input = []byte(compose(o))
 
 }
 
@@ -214,6 +217,7 @@ func (m Mutator) mutate(ts *TestCase) {
 			m.interestingByte(ts)
 		case 5:
 			m.mutateInts(ts)
+			// if no mutate, return
 		default:
 			fmt.Printf("[WARN] mutator broken")
 			//dunno
