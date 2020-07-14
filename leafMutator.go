@@ -24,6 +24,13 @@ func compose(o []string) string {
 	return strings.Join(o, " ")
 }
 
+/*
+ * takes in a slice of strings o and identifies whether or not
+ * each string in the slice can be parsed by the function s 
+ * (isAFloat, isAInt, isAHex).
+ * returns a slice of indexes corresponding to the strings in o
+ * which can successfully be parsed by the function s
+ */
 func identifyCandidates(o []string, s func(string) bool) []int {
 	candidates := make([]int, 1)
 	for i, obj := range o {
@@ -82,6 +89,9 @@ func isAFloat(w string) bool {
 
 	_, err := strconv.ParseFloat(w, 1)
 
+	/*
+	 *
+	 */
 	if !isAInt(w) && err == nil {
 		return true
 	}
