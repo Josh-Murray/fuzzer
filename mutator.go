@@ -68,7 +68,13 @@ func interestingInteger(i int) string {
 	return candidates[r1.Intn(len(candidates))]
 }
 
-
+/*
+ * takes in a testCase which contains the input to mutate. 
+ * The input is decomposed into a slice of strings and the function cnd
+ * determines which of the strings are suitable to apply a specified
+ * mutation on. 
+ * TODO: COMPLETE FUNCTION DESCRIPTION
+ */
 func mutateObj(s string, cnd func(string) bool, rplc func(int) string) string {
 	o := decompose(s)
 	c := identifyCandidates(o, cnd)
@@ -85,6 +91,8 @@ func mutateObj(s string, cnd func(string) bool, rplc func(int) string) string {
 	change += fmt.Sprintln("Replacing:", changeLocs)
 
 	for i, location := range changeLocs {
+		// replace the string at index location with the 
+		// string returned from func rplc(i)
 		replace(o, location, rplc(i))
 	}
 
