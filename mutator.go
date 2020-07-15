@@ -8,6 +8,7 @@ import (
 	"time"
 	"log"
 	"errors"
+	"regexp"
 )
 
 type Mutator struct {
@@ -34,8 +35,26 @@ func replace(o []string, changes *[]string, i int, v string) {
 	o[i] = v
 }
 
+/*
+ * splits the string s according to the regexp r using FindAllString. 
+ * FindAllString returns a slice of all successive matches. 
+ * The regexp currently finds matches for 
+ * 	- all ',' characters
+ * 	- all characters that are not ',' ([^,])
+ *	- all whitespace characters (\s)
+ *	- all not whitespace characters (\S)
+ * splitting by both a delimiter and everything else that is not said delimiter
+ * means the resulting slice of strings includes the delimiter. 
+ * e.g. the string:
+ * 	s := "1, 2, 3" 
+ * becomes the slice of strings
+ * 	res := {"1", ",", " ", "2", ",", " ", "3"}
+ * This allows the the decomposed string to be recomposed later on with the
+ * delimiters intact. 
+ */
 func decompose(s string) []string {
-	return strings.Split(s, " ")
+	r := regexp.MustCompile(`(,|[^,])|(\s|\S)`)
+	return r.FindAllString(s, -1)
 }
 
 func compose(o []string) string {
@@ -101,7 +120,6 @@ func mutateObj(ts *TestCase, cnd func(string) bool, rplc func(int) string) error
 	 * add 1 to the random int generated so the numToChange is always
 	 * greater than 0. */
 	numToChange := rand.Intn(len(c)) + 1
-	fmt.Println("num to change", numToChange)
 	changeLocs := c[:numToChange]
 
 	for i, location := range changeLocs {
