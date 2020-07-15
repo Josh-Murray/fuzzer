@@ -6,6 +6,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	"log"
+	"errors"
 )
 
 type Mutator struct {
@@ -80,9 +82,14 @@ func interestingInteger(i int) string {
  * mutation on. 
  * TODO: COMPLETE FUNCTION DESCRIPTION
  */
-func mutateObj(ts *TestCase, cnd func(string) bool, rplc func(int) string) {
+func mutateObj(ts *TestCase, cnd func(string) bool, rplc func(int) string) error {
 	o := decompose(string(ts.input))
 	c := identifyCandidates(o, cnd)
+
+	/* return an error if there are no candidates to mutate */
+	if len(c) == 0 {
+		return errors.New("mutateObj: no candidates found")
+	}
 
 	seed := rand.NewSource(time.Now().UnixNano())
 	rand := rand.New(seed)
@@ -105,10 +112,12 @@ func mutateObj(ts *TestCase, cnd func(string) bool, rplc func(int) string) {
 
 	ts.input = []byte(compose(o))
 
+	return nil
+
 }
 
-func (m Mutator) mutateInts(ts *TestCase) {
-	mutateObj(ts, isAInt, interestingInteger)
+func (m Mutator) mutateInts(ts *TestCase) error {
+	return mutateObj(ts, isAInt, interestingInteger)
 }
 
 func (m Mutator) flipBits(ts *TestCase) {
@@ -216,8 +225,11 @@ func (m Mutator) mutate(ts *TestCase) {
 		case 4:
 			m.interestingByte(ts)
 		case 5:
-			m.mutateInts(ts)
-			// if no mutate, return
+			err := m.mutateInts(ts)
+			if err != nil {
+				log.Fatalln(err)
+				return
+			}
 		default:
 			fmt.Printf("[WARN] mutator broken")
 			//dunno
