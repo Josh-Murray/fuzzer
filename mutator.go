@@ -115,10 +115,16 @@ func interestingFloat(n int) string {
  * hex format. ParseInt accepts strings in 0x format however ParseFloat 
  * does not.
  * If ParseInt does not throw an error but ParseFloat does, then
- * the string is a number in hex format
+ * the string is a number in hex format.
  */
 func isAHex(w string) bool {
-	_, err := strconv.ParseInt(w, 0, 64)
+	/* check if string starts with 0x or 0X, return if it doesn't */
+	m, err := regexp.MatchString(`(m?)^0[xX]`, w)
+	if err != nil || m == false {
+		return false
+	}
+
+	_, err = strconv.ParseInt(w, 0, 64)
 	if err != nil {
 		return false
 	}
