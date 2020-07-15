@@ -71,7 +71,10 @@ func identifyCandidates(o []string, s func(string) bool) []int {
 	var candidates []int
 	for i, obj := range o {
 		if s(obj) {
+			fmt.Println("is a hex", o[i])
 			candidates = append(candidates, i)
+		} else {
+			fmt.Println("is not a hex", o[i])
 		}
 	}
 	return candidates
@@ -109,6 +112,35 @@ func interestingFloat(n int) string {
 	r1 := rand.New(s1)
 	result := candidates[r1.Intn(len(candidates))]
 	return fmt.Sprintf("%v", result)
+}
+
+/* 
+ * Determines whether or not a string is can be parsed as a number in
+ * hex format. ParseInt accepts strings in 0x format however ParseFloat 
+ * does not.
+ * If ParseInt does not throw an error but ParseFloat does, then
+ * the string is a number in hex format
+ */
+func isAHex(w string) bool {
+	_, err := strconv.ParseInt(w, 0, 64)
+	if err != nil {
+		return false
+	}
+
+	_, err = strconv.ParseFloat(w, 1)
+	if err == nil {
+		return false
+	}
+
+	return true
+}
+
+func interestingHex(i int) string {
+	candidates := []string{"0", "0x", "0x00000000", "0x0000000", "0xFFFFFFFF", "0x80000000", "0xdeadbeef", "01234567", "0xDEADBEEF", "0x0000000G"}
+	s1 := rand.NewSource(time.Now().UnixNano() * int64(i))
+	r1 := rand.New(s1)
+
+	return candidates[r1.Intn(len(candidates))]
 }
 
 /*
@@ -157,6 +189,10 @@ func (m Mutator) mutateInts(ts *TestCase) error {
 
 func (m Mutator) mutateFloats(ts *TestCase) error {
 	return mutateObj(ts, isAFloat, interestingFloat)
+}
+
+func (m Mutator) mutateHex(ts *TestCase) error {
+	return mutateObj(ts, isAHex, interestingHex)
 }
 
 func (m Mutator) flipBits(ts *TestCase) {
@@ -250,7 +286,7 @@ func (m Mutator) mutate(ts *TestCase) {
 	nMutations := m.rng.Intn(8)
 	for i := 0; i < nMutations; i++ {
 		//selection := m.rng.Intn(5)
-		selection := 6
+		selection := 7
 		// TODO work out configurables, they might be needed here
 		switch selection {
 		case 0:
@@ -271,6 +307,12 @@ func (m Mutator) mutate(ts *TestCase) {
 			}
 		case 6:
 			err := m.mutateFloats(ts)
+			if err != nil {
+				log.Fatalln(err)
+				return
+			}
+		case 7:
+			err := m.mutateHex(ts)
 			if err != nil {
 				log.Fatalln(err)
 				return
