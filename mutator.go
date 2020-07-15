@@ -46,8 +46,8 @@ func replace(o []string, changes *[]string, i int, v string) {
  * e.g. the string:
  * 	s := "1, 2, -100" 
  * becomes the slice of strings
- * 	res := {"1", ",", " ", "2", ",", " ", "-100"}
- * This allows the the decomposed string to be recomposed later on with the
+ * 	result := {"1", ",", " ", "2", ",", " ", "-100"}
+ * This allows the decomposed string to be recomposed later on with the
  * delimiters intact. 
  */
 func decompose(s string) []string {
@@ -56,7 +56,6 @@ func decompose(s string) []string {
 }
 
 func compose(o []string) string {
-	fmt.Println("composing", strings.Join(o, ""))
 	return strings.Join(o, "")
 }
 
@@ -96,15 +95,12 @@ func interestingInteger(i int) string {
 /*
  * takes in a testCase which contains the input to mutate. 
  * The input is decomposed into a slice of strings and the function cnd
- * determines which of the strings are suitable to apply a specified
- * mutation on. 
- * TODO: COMPLETE FUNCTION DESCRIPTION
+ * determines which of the strings are suitable to apply the function
+ * rplc on. The function rplc returns a string with which to replace some
+ * value in the decomposed TestCase input 'o'.  
  */
 func mutateObj(ts *TestCase, cnd func(string) bool, rplc func(int) string) error {
 	o := decompose(string(ts.input))
-	for i := range(o) {
-		fmt.Printf("'%s'\n", o[i])
-	}
 	c := identifyCandidates(o, cnd)
 
 	/* return an error if there are no candidates to mutate */
