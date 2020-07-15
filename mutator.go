@@ -9,6 +9,7 @@ import (
 	"log"
 	"errors"
 	"regexp"
+	"math"
 )
 
 type Mutator struct {
@@ -92,6 +93,24 @@ func interestingInteger(i int) string {
 	return candidates[r1.Intn(len(candidates))]
 }
 
+func isAFloat(w string) bool {
+
+	_, err := strconv.ParseFloat(w, 1)
+
+	if !isAInt(w) && err == nil {
+		return true
+	}
+	return false
+}
+
+func interestingFloat(n int) string {
+	candidates := []float32{0, -0, 1, -1, float32(math.Inf(1)), float32(math.Inf(1)), float32(math.NaN())}
+	s1 := rand.NewSource(time.Now().UnixNano() * int64(n))
+	r1 := rand.New(s1)
+	result := candidates[r1.Intn(len(candidates))]
+	return fmt.Sprintf("%v", result)
+}
+
 /*
  * takes in a testCase which contains the input to mutate. 
  * The input is decomposed into a slice of strings and the function cnd
@@ -134,6 +153,10 @@ func mutateObj(ts *TestCase, cnd func(string) bool, rplc func(int) string) error
 
 func (m Mutator) mutateInts(ts *TestCase) error {
 	return mutateObj(ts, isAInt, interestingInteger)
+}
+
+func (m Mutator) mutateFloats(ts *TestCase) error {
+	return mutateObj(ts, isAFloat, interestingFloat)
 }
 
 func (m Mutator) flipBits(ts *TestCase) {
@@ -227,7 +250,7 @@ func (m Mutator) mutate(ts *TestCase) {
 	nMutations := m.rng.Intn(8)
 	for i := 0; i < nMutations; i++ {
 		//selection := m.rng.Intn(5)
-		selection := 5
+		selection := 6
 		// TODO work out configurables, they might be needed here
 		switch selection {
 		case 0:
@@ -242,6 +265,12 @@ func (m Mutator) mutate(ts *TestCase) {
 			m.interestingByte(ts)
 		case 5:
 			err := m.mutateInts(ts)
+			if err != nil {
+				log.Fatalln(err)
+				return
+			}
+		case 6:
+			err := m.mutateFloats(ts)
 			if err != nil {
 				log.Fatalln(err)
 				return
