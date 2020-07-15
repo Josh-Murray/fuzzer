@@ -6,7 +6,6 @@ import (
 	"strconv"
 	"strings"
 	"time"
-	"log"
 	"errors"
 	"regexp"
 	"math"
@@ -299,10 +298,9 @@ func (m Mutator) interestingByte(ts *TestCase) {
 }
 
 func (m Mutator) mutate(ts *TestCase) {
-	nMutations := m.rng.Intn(8)
+	nMutations := m.rng.Intn(16)
 	for i := 0; i < nMutations; i++ {
-		//selection := m.rng.Intn(5)
-		selection := 9
+		selection := m.rng.Intn(10)
 		// TODO work out configurables, they might be needed here
 		switch selection {
 		case 0:
@@ -318,20 +316,17 @@ func (m Mutator) mutate(ts *TestCase) {
 		case 5:
 			err := m.mutateInts(ts)
 			if err != nil {
-				log.Fatalln(err)
-				return
+				continue
 			}
 		case 6:
 			err := m.mutateFloats(ts)
 			if err != nil {
-				log.Fatalln(err)
-				return
+				continue
 			}
 		case 7:
 			err := m.mutateHex(ts)
 			if err != nil {
-				log.Fatalln(err)
-				return
+				continue
 			}
 		case 8:
 			m.mutateReverse(ts)
