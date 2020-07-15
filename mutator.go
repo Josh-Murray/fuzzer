@@ -39,26 +39,25 @@ func replace(o []string, changes *[]string, i int, v string) {
  * splits the string s according to the regexp r using FindAllString. 
  * FindAllString returns a slice of all successive matches. 
  * The regexp currently finds matches for 
- * 	- all ',' characters
- * 	- all characters that are not ',' ([^,])
- *	- all whitespace characters (\s)
- *	- all not whitespace characters (\S)
- * splitting by both a delimiter and everything else that is not said delimiter
+ * 	- all ',' characters and all whitespace characters ([,\s])
+ * 	- all other characters that are not ',' or whitespace ([^,\s]+)
+ * splitting by both delimiters and everything else that are not said delimiter
  * means the resulting slice of strings includes the delimiter. 
  * e.g. the string:
- * 	s := "1, 2, 3" 
+ * 	s := "1, 2, -100" 
  * becomes the slice of strings
- * 	res := {"1", ",", " ", "2", ",", " ", "3"}
+ * 	res := {"1", ",", " ", "2", ",", " ", "-100"}
  * This allows the the decomposed string to be recomposed later on with the
  * delimiters intact. 
  */
 func decompose(s string) []string {
-	r := regexp.MustCompile(`(,|[^,])|(\s|\S)`)
+	r := regexp.MustCompile(`([,\s]|[^,\s]+)`)
 	return r.FindAllString(s, -1)
 }
 
 func compose(o []string) string {
-	return strings.Join(o, " ")
+	fmt.Println("composing", strings.Join(o, ""))
+	return strings.Join(o, "")
 }
 
 /*
@@ -103,6 +102,9 @@ func interestingInteger(i int) string {
  */
 func mutateObj(ts *TestCase, cnd func(string) bool, rplc func(int) string) error {
 	o := decompose(string(ts.input))
+	for i := range(o) {
+		fmt.Printf("'%s'\n", o[i])
+	}
 	c := identifyCandidates(o, cnd)
 
 	/* return an error if there are no candidates to mutate */
