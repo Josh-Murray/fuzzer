@@ -39,8 +39,7 @@ func traceSyscalls(pid int, ws *syscall.WaitStatus) execTrace {
 		// Collect trace information.
 		err = syscall.PtraceGetRegs(pid, &regs)
 		if err != nil {
-			log.Fatal("Getregs failed")
-			log.Fatal(err)
+			log.Fatal("traceSyscalls failed to call PtraceGetRegs")
 		}
 
 		traceRegs := getInterestingRegs(&regs)
@@ -128,6 +127,7 @@ func crashReport(crashCase TestCase) {
 	if err != nil {
 		log.Println("Failed to create crash output file. Crashing output:")
 		log.Println(string(crashCase.input))
+		return
 	}
 
 	nWritten, err := f.Write(crashCase.input)
@@ -143,6 +143,6 @@ func crashReport(crashCase TestCase) {
 	}
 	err = f.Close()
 	if err != nil {
-		log.Fatal(err)
+		log.Fatal("crashReport failed to close the file")
 	}
 }
