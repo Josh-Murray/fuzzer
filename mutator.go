@@ -71,10 +71,7 @@ func identifyCandidates(o []string, s func(string) bool) []int {
 	var candidates []int
 	for i, obj := range o {
 		if s(obj) {
-			fmt.Println("is a hex", o[i])
 			candidates = append(candidates, i)
-		} else {
-			fmt.Println("is not a hex", o[i])
 		}
 	}
 	return candidates
@@ -193,6 +190,16 @@ func (m Mutator) mutateFloats(ts *TestCase) error {
 
 func (m Mutator) mutateHex(ts *TestCase) error {
 	return mutateObj(ts, isAHex, interestingHex)
+}
+
+func (m Mutator) mutateReverse(ts *TestCase) {
+	o := decompose(string(ts.input))
+	for left, right := 0, len(o)-1; left < right; left, right = left+1, right-1 {
+		o[left], o[right] = o[right], o[left]
+	}
+	ts.changes = append(ts.changes, "Reversing entire thing")
+	ts.input = []byte(compose(o))
+
 }
 
 func (m Mutator) flipBits(ts *TestCase) {
@@ -317,6 +324,8 @@ func (m Mutator) mutate(ts *TestCase) {
 				log.Fatalln(err)
 				return
 			}
+		case 8:
+			m.mutateReverse(ts)
 		default:
 			fmt.Printf("[WARN] mutator broken")
 			//dunno
