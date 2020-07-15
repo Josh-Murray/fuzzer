@@ -192,6 +192,15 @@ func (m Mutator) mutateHex(ts *TestCase) error {
 	return mutateObj(ts, isAHex, interestingHex)
 }
 
+func (m Mutator) mutateShuffle(ts *TestCase) {
+	o := decompose(string(ts.input))
+	s1 := rand.NewSource(time.Now().UnixNano() * int64(1))
+	r1 := rand.New(s1)
+	r1.Shuffle(len(o), func(i, j int) { o[i], o[j] = o[j], o[i] })
+	ts.changes = append(ts.changes, "Shuffling")
+	ts.input = []byte(compose(o))
+}
+
 func (m Mutator) mutateReverse(ts *TestCase) {
 	o := decompose(string(ts.input))
 	for left, right := 0, len(o)-1; left < right; left, right = left+1, right-1 {
@@ -293,7 +302,7 @@ func (m Mutator) mutate(ts *TestCase) {
 	nMutations := m.rng.Intn(8)
 	for i := 0; i < nMutations; i++ {
 		//selection := m.rng.Intn(5)
-		selection := 7
+		selection := 9
 		// TODO work out configurables, they might be needed here
 		switch selection {
 		case 0:
@@ -326,6 +335,8 @@ func (m Mutator) mutate(ts *TestCase) {
 			}
 		case 8:
 			m.mutateReverse(ts)
+		case 9:
+			m.mutateShuffle(ts)
 		default:
 			fmt.Printf("[WARN] mutator broken")
 			//dunno
