@@ -7,6 +7,9 @@ import (
 	"time"
 )
 
+type JsonElement interface {
+	flatten() string
+}
 // json value type enum
 type valueType int
 const (
@@ -17,19 +20,46 @@ const (
 )
 
 var (
-	jInterestingStrings =  []string{"\"yeet\"", "\"swag\"", "\"aaaa\"", "\"bbbb\"", "\"0\"", "\"-1\"", "\"adam\"", "\"trivial\""}
+	jInterestingStrings =  []string{"yeet", "swag", "aaaa", "bbbb", "0", "-1", "adam", "trivial"}
 	jInterestingInts = []int {-256, -128, -1, 0, 1, 16, 32, 64,127, 255, 256, 512, 1024, 4096, 0xffffffff, 0x7ffffffff}
 )
 
-type JsonElement struct {
-	key string
-	values []string
-	vType valueType
+func (j JsonString) flatten() string{
+	return  "\"" + j.value + "\""
+}
+type JsonString struct {
+	value string
+}
+
+func (j JsonInt) flatten() string{
+	return strconv.Itoa(j.value)
+}
+type JsonInt struct {
+	value int
+}
+func (j JsonArray) flatten() string{
+	result := "["
+	for i, val := range j.values {
+		result += val.flatten()
+		if i < len(j.values) -1 {
+			result += ", "
+		}
+	}
+	result += "]"
+	return result
+}
+type JsonArray struct {
+	values []JsonElement
+}
+
+type JsonObject struct {
+	keys []string
+	values []JsonElement
 }
 
 type JsonHolder struct {
 	rng *rand.Rand
-	elements []JsonElement
+	json JsonObject
 }
 
 func createJsonHolder(seed int64) JsonHolder{
@@ -37,61 +67,73 @@ func createJsonHolder(seed int64) JsonHolder{
 	return JsonHolder{rng:r}
 }
 
-func (j * JsonHolder) addElement(newKey string, newValues []string, newType valueType) {
-	newElem := JsonElement{key:newKey, values: make([]string, len(newValues)), vType: newType}
-	copy(newElem.values, newValues)
-	j.elements = append(j.elements, newElem)
+func (j * JsonHolder) addElement(element JsonElement) {
+	j.json.values = append(j.json.values, element)
 }
 
-func (j * JsonHolder) addInterestingString(keys []string, values []string){
-	key := keys[j.rng.Intn(len(keys))]
-	value := []string{keys[j.rng.Intn(len(keys))]}
-	j.addElement(key, value, jString)
+func (j * JsonHolder) addInterestingString(strs []string){
+	newValue := strs[j.rng.Intn(len(strs))]
+	newString := JsonString{value: newValue}
+	j.addElement(newString)
 }
 
-func (j * JsonHolder) addRandomInt(keys []string){
-	key := keys[j.rng.Intn(len(keys))]
-	value := []string{strconv.Itoa(j.rng.Intn(0xffffffff))}
-	j.addElement(key, value, jInt)
+func (j * JsonHolder) addRandomInt(){
+	newValue := j.rng.Intn(0xffffffff)
+	newInt := JsonInt{value: newValue}
+	j.addElement(newInt)
+}
+
+
+func (j * JsonHolder) addNestedArray(jArray * JsonArray, strs []string, ints []int, depth int){
+	if depth == 3 {
+		for i := 0; i < j.rng.Intn(8); i ++{
+			switch j.rng.Intn(2){
+				case 0:
+					jArray.values = append(jArray.values, JsonString{value: strs[j.rng.Intn(len(strs))]})
+				case 1:
+					jArray.values = append(jArray.values, JsonInt{value: ints[j.rng.Intn(len(ints))]})
+			}
+		}
+	}else{
+		for i := 0; i < j.rng.Intn(8); i ++{
+			switch j.rng.Intn(3){
+				case 0:
+					jArray.values = append(jArray.values, JsonString{value: strs[j.rng.Intn(len(strs))]})
+				case 1:
+					jArray.values = append(jArray.values, JsonInt{value: ints[j.rng.Intn(len(ints))]})
+				case 2:
+					newArr := JsonArray{}
+					j.addNestedArray(&newArr, strs, ints, depth + 1)
+					jArray.values = append(jArray.values, newArr)
+			}
+		}
+
+	}
 }
 // TODO add objects and arrays to this
-func (j * JsonHolder) addArray(keys []string, ints []int){
-	n := j.rng.Intn(0xffffffff)
-	vals := []string{}
-	key := keys[j.rng.Intn(len(keys))]
-	for (n!=0){
-		val:= (n%10)%2;
-		if val == 0 {
-			vals = append(vals, keys[j.rng.Intn(len(keys))])
-		}else{
-			vals = append(vals, strconv.Itoa(ints[j.rng.Intn(len(ints))]))
+func (j * JsonHolder) addArray(strs []string, ints []int){
+	newArr := JsonArray{}
+	for i := 0; i < j.rng.Intn(8); i++{
+		switch (j.rng.Intn(3)){
+			case 0:
+				newArr.values = append(newArr.values, JsonString{value: strs[j.rng.Intn(len(strs))]})
+			case 1:
+				newArr.values = append(newArr.values, JsonInt{value: ints[j.rng.Intn(len(ints))]})
+			case 2:
+				nestedArr := JsonArray{}
+				j.addNestedArray(&nestedArr,strs, ints, 0)
+				newArr.values = append(newArr.values, nestedArr)
 		}
-		n /= 10
 	}
-	j.addElement(key, vals, jArray)
+	j.addElement(newArr)
 }
 
-func (j * JsonHolder) flatten() string{
+func (j * JsonHolder) flatten(strs []string, ints []int) string{
 	result := "{\n"
-	for n, i := range j.elements {
-		result += "\t" + i.key + ": ";
-		switch i.vType{
-			case jArray:
-				result +="[ "
-				for m, j := range i.values {
-					result += j
-					if (m < len(i.values)-1){
-						result += ", "
-					}
-				}
-				result += "]"
-			case jString:
-				result += i.values[0]
-			case jInt:
-				result += i.values[0]
-
-		}
-		if (n < len(j.elements) -1 ){
+	for n, i := range j.json.values {
+		key := strs[j.rng.Intn(len(strs))]
+		result += "\t\"" + key + "\": " + i.flatten();
+		if (n < len(j.json.values) -1 ){
 			result += ","
 		}
 		result += "\n"
@@ -108,13 +150,13 @@ func testJGenerator(){
 			choice := holder.rng.Intn(3)
 			switch(choice){
 				case 0:
-					holder.addInterestingString(jInterestingStrings, jInterestingStrings)
+					holder.addInterestingString(jInterestingStrings)
 				case 1:
-					holder.addRandomInt(jInterestingStrings)
+					holder.addRandomInt()
 				case 2:
 					holder.addArray(jInterestingStrings, jInterestingInts)
 			}
 		}
-		holder.flatten()
+		holder.flatten(jInterestingStrings, jInterestingInts)
 	}
 }
