@@ -1,14 +1,14 @@
 package main
 
 import (
+	"errors"
 	"fmt"
+	"math"
 	"math/rand"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
-	"errors"
-	"regexp"
-	"math"
 )
 
 type Mutator struct {
@@ -28,27 +28,26 @@ func createMutator(out chan TestCase, seed int64) Mutator {
 	return Mutator{rng: r, outChan: out}
 }
 
-
 func replace(o []string, changes *[]string, i int, v string) {
-	c := fmt.Sprintf("Replacing input[%d]=%s with %s\n",i ,o[i], v)
+	c := fmt.Sprintf("Replacing input[%d]=%s with %s\n", i, o[i], v)
 	*changes = append(*changes, c)
 	o[i] = v
 }
 
 /*
- * splits the string s according to the regexp r using FindAllString. 
- * FindAllString returns a slice of all successive matches. 
- * The regexp currently finds matches for 
+ * splits the string s according to the regexp r using FindAllString.
+ * FindAllString returns a slice of all successive matches.
+ * The regexp currently finds matches for
  * 	- all ',' characters and all whitespace characters ([,\s])
  * 	- all other characters that are not ',' or whitespace ([^,\s]+)
  * splitting by both delimiters and everything else that are not said delimiter
- * means the resulting slice of strings includes the delimiter. 
+ * means the resulting slice of strings includes the delimiter.
  * e.g. the string:
- * 	s := "1, 2, -100" 
+ * 	s := "1, 2, -100"
  * becomes the slice of strings
  * 	result := {"1", ",", " ", "2", ",", " ", "-100"}
  * This allows the decomposed string to be recomposed later on with the
- * delimiters intact. 
+ * delimiters intact.
  */
 func decompose(s string) []string {
 	r := regexp.MustCompile(`([,\s]|[^,\s]+)`)
@@ -61,7 +60,7 @@ func compose(o []string) string {
 
 /*
  * takes in a slice of strings o and identifies whether or not
- * each string in the slice can be parsed by the function s 
+ * each string in the slice can be parsed by the function s
  * (isAFloat, isAInt, isAHex).
  * returns a slice of indexes corresponding to the strings in o
  * which can successfully be parsed by the function s
@@ -110,9 +109,9 @@ func interestingFloat(n int) string {
 	return fmt.Sprintf("%v", result)
 }
 
-/* 
+/*
  * Determines whether or not a string is can be parsed as a number in
- * hex format. ParseInt accepts strings in 0x format however ParseFloat 
+ * hex format. ParseInt accepts strings in 0x format however ParseFloat
  * does not.
  * If ParseInt does not throw an error but ParseFloat does, then
  * the string is a number in hex format.
@@ -146,11 +145,11 @@ func interestingHex(i int) string {
 }
 
 /*
- * takes in a testCase which contains the input to mutate. 
+ * takes in a testCase which contains the input to mutate.
  * The input is decomposed into a slice of strings and the function cnd
  * determines which of the strings are suitable to apply the function
  * rplc on. The function rplc returns a string with which to replace some
- * value in the decomposed TestCase input 'o'.  
+ * value in the decomposed TestCase input 'o'.
  */
 func mutateObj(ts *TestCase, cnd func(string) bool, rplc func(int) string) error {
 	o := decompose(string(ts.input))
@@ -174,7 +173,7 @@ func mutateObj(ts *TestCase, cnd func(string) bool, rplc func(int) string) error
 	changeLocs := c[:numToChange]
 
 	for i, location := range changeLocs {
-		/* replace the string at index location with the 
+		/* replace the string at index location with the
 		 * string returned from func rplc(i) */
 		replace(o, &ts.changes, location, rplc(i))
 	}
