@@ -105,7 +105,9 @@ func harness(id int, cmd string,
 		runtime.UnlockOSThread()
 		if isUniqueTrace(curExecTrace, uniqueTraces) {
 			uniqueTraces = append(uniqueTraces, curExecTrace)
-			interestCases <- inputCase
+			// This channel is currently not used, leading to deadlock
+			// if given input here.
+			//interestCases <- inputCase
 		}
 
 		// Report segfaults and ignore other exit causes.
