@@ -8,7 +8,6 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
-	"time"
 )
 
 type Mutator struct {
@@ -83,12 +82,9 @@ func isAInt(o string) bool {
 	return false
 }
 
-func interestingInteger(i int) string {
+func (m Mutator) interestingInteger(i int) string {
 	candidates := []string{"0", "-1", "-100", "100"}
-	s1 := rand.NewSource(time.Now().UnixNano() * int64(i))
-	r1 := rand.New(s1)
-
-	return candidates[r1.Intn(len(candidates))]
+	return candidates[m.rng.Intn(len(candidates))]
 }
 
 func isAFloat(w string) bool {
@@ -101,11 +97,9 @@ func isAFloat(w string) bool {
 	return false
 }
 
-func interestingFloat(n int) string {
+func (m Mutator) interestingFloat(n int) string {
 	candidates := []float32{0, -0, 1, -1, float32(math.Inf(1)), float32(math.Inf(1)), float32(math.NaN())}
-	s1 := rand.NewSource(time.Now().UnixNano() * int64(n))
-	r1 := rand.New(s1)
-	result := candidates[r1.Intn(len(candidates))]
+	result := candidates[m.rng.Intn(len(candidates))]
 	return fmt.Sprintf("%v", result)
 }
 
@@ -136,12 +130,9 @@ func isAHex(w string) bool {
 	return true
 }
 
-func interestingHex(i int) string {
+func (m Mutator) interestingHex(i int) string {
 	candidates := []string{"0", "0x", "0x00000000", "0x0000000", "0xFFFFFFFF", "0x80000000", "0xdeadbeef", "01234567", "0xDEADBEEF", "0x0000000G"}
-	s1 := rand.NewSource(time.Now().UnixNano() * int64(i))
-	r1 := rand.New(s1)
-
-	return candidates[r1.Intn(len(candidates))]
+	return candidates[m.rng.Intn(len(candidates))]
 }
 
 /*
@@ -151,7 +142,7 @@ func interestingHex(i int) string {
  * rplc on. The function rplc returns a string with which to replace some
  * value in the decomposed TestCase input 'o'.
  */
-func mutateObj(ts *TestCase, cnd func(string) bool, rplc func(int) string) error {
+func (m Mutator) mutateObj(ts *TestCase, cnd func(string) bool, rplc func(int) string) error {
 	o := decompose(string(ts.input))
 	c := identifyCandidates(o, cnd)
 
@@ -160,16 +151,13 @@ func mutateObj(ts *TestCase, cnd func(string) bool, rplc func(int) string) error
 		return errors.New("mutateObj: no candidates found")
 	}
 
-	seed := rand.NewSource(time.Now().UnixNano())
-	rand := rand.New(seed)
-
 	/* shuffle the  candidate locations */
-	rand.Shuffle(len(c), func(i, j int) { c[i], c[j] = c[j], c[i] })
+	m.rng.Shuffle(len(c), func(i, j int) { c[i], c[j] = c[j], c[i] })
 
 	/* pick a random number of locations to change
 	 * add 1 to the random int generated so the numToChange is always
 	 * greater than 0. */
-	numToChange := rand.Intn(len(c)) + 1
+	numToChange := m.rng.Intn(len(c)) + 1
 	changeLocs := c[:numToChange]
 
 	for i, location := range changeLocs {
@@ -185,22 +173,20 @@ func mutateObj(ts *TestCase, cnd func(string) bool, rplc func(int) string) error
 }
 
 func (m Mutator) mutateInts(ts *TestCase) error {
-	return mutateObj(ts, isAInt, interestingInteger)
+	return m.mutateObj(ts, isAInt, m.interestingInteger)
 }
 
 func (m Mutator) mutateFloats(ts *TestCase) error {
-	return mutateObj(ts, isAFloat, interestingFloat)
+	return m.mutateObj(ts, isAFloat, m.interestingFloat)
 }
 
 func (m Mutator) mutateHex(ts *TestCase) error {
-	return mutateObj(ts, isAHex, interestingHex)
+	return m.mutateObj(ts, isAHex, m.interestingHex)
 }
 
 func (m Mutator) mutateShuffle(ts *TestCase) {
 	o := decompose(string(ts.input))
-	s1 := rand.NewSource(time.Now().UnixNano() * int64(1))
-	r1 := rand.New(s1)
-	r1.Shuffle(len(o), func(i, j int) { o[i], o[j] = o[j], o[i] })
+	m.rng.Shuffle(len(o), func(i, j int) { o[i], o[j] = o[j], o[i] })
 	ts.changes = append(ts.changes, "Shuffling")
 	ts.input = []byte(compose(o))
 }
