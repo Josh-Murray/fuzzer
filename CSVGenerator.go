@@ -309,6 +309,13 @@ func spamRows(copies bool, tests chan<- TestCase, s mCSVHolder) {
 }
 
 /*
+ * Blank out the csv
+ */
+func blankCSV(copies bool, tests chan<- TestCase, s mCSVHolder) {
+
+}
+
+/*
  * Take a CSV file as base and permute variations into the test channel
  */
 func generateCSVs(tests chan<- TestCase, file string) {
@@ -319,15 +326,23 @@ func generateCSVs(tests chan<- TestCase, file string) {
 	tests <- input.generateTestCase()
 
 	//spam adding blank rows
+	input = newCSV("Spamming blank CSV rows")
+	input.read(file)
 	spamRows(false, tests, input)
 
 	//spam adding copies of the last row
+	input = newCSV("Spamming copies CSV rows")
+	input.read(file)
 	spamRows(true, tests, input)
 
 	//spamm adding blank columns
+	input = newCSV("Spamming blank CSV cols")
+	input.read(file)
 	spamCols(false, tests, input)
 
 	//spam adding copies of the last column
+	input = newCSV("Spamming copies CSV cols")
+	input.read(file)
 	spamCols(true, tests, input)
 
 	//TODO: probably close the channel here?
