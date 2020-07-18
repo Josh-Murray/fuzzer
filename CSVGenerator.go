@@ -100,7 +100,7 @@ func (s *mCSVHolder) deleteCol(u int) {
 		for i, line := range s.lines {
 			s.lines[i] = append(line[:u], line[u+1:]...)
 		}
-		s.addToDesc(Sprintf("Removed column %d from CSV\n", u))
+		s.addToDesc(fmt.Sprintf("Removed column %d from CSV\n", u))
 		s.columns--
 	} else {
 		s.addToDesc(fmt.Sprintf("No Column %d to delete from CSV\n", u))
@@ -266,10 +266,9 @@ func (s *mCSVHolder) addBlankCol(c int) {
  */
 func (s *mCSVHolder) generateTestCase() TestCase {
 	ts := TestCase{}
-	copy(ts.changes, s.description)
+	ts.changes = append(ts.changes, s.description...)
 	content := s.flatten()
-	copy(ts.input, content)
-
+	ts.input = append(ts.input, content...)
 	return ts
 }
 
@@ -292,6 +291,7 @@ func spamRows(copies bool, tests chan<- TestCase, s mCSVHolder) {
 			tests <- s.generateTestCase()
 		}
 	}
+
 }
 
 /*
@@ -313,6 +313,7 @@ func spamRows(copies bool, tests chan<- TestCase, s mCSVHolder) {
 			tests <- s.generateTestCase()
 		}
 	}
+
 }
 
 /*
@@ -321,10 +322,10 @@ func spamRows(copies bool, tests chan<- TestCase, s mCSVHolder) {
 func blankCSV(tests chan<- TestCase, s mCSVHolder) {
 
 	blankRow := make([]string, s.columns)
-	
+
 	t := newCSV("Blank csv with original number of rows and columns")
 	for i := 0; i < s.rows; i++ {
-		t.addRow(blankRow)
+		t.addRow(1, blankRow)
 	}
 
 	tests<- t.generateTestCase()
@@ -351,9 +352,9 @@ func generateCSVs(tests chan<- TestCase, file string) {
 	//spam adding copies of the last row
 	input = newCSV("Spamming copies CSV rows")
 	input.read(file)
-	spamRows(true, tests, input)
+	spamRows(true, tests, input) 
 
-	//spamm adding blank columns
+	//spam adding blank columns
 	input = newCSV("Spamming blank CSV cols")
 	input.read(file)
 	spamCols(false, tests, input)
