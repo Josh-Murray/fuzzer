@@ -271,13 +271,34 @@ func (s *mCSVHolder) generateTestCase() TestCase {
  * otherwise add blank rows
  */
 func spamRows(copies bool, tests chan<- TestCase, s mCSVHolder) {
-
+	//TODO: abstract magic numbers
 	for i := 1; i < 4096; i++ {
 		// copy the last row
 		if copies {
 			s.copyRow(s.rows - 1)
 		} else {
 			s.addBlankRow(s.rows - 1)
+		}
+
+		//only send every nth case to test
+		if i < 3 || i%16 == 0 {
+			tests <- s.generateTestCase()
+		}
+	}
+}
+
+/*
+ * Teses making lots of copies of a column. If copies is true then copy the last row
+ * otherwise add blank rows
+ */
+ func spamCols(copies bool, tests chan<- TestCase, s mCSVHolder) {
+	//TODO: abstract magic numbers
+	for i := 1; i < 4096; i++ {
+		// copy the last row
+		if copies {
+			s.copyCol(s.columns - 1)
+		} else {
+			s.addBlankCol(s.columns - 1)
 		}
 
 		//only send every nth case to test
@@ -301,7 +322,13 @@ func generateCSVs(tests chan<- TestCase, file string) {
 	spamRows(false, tests, input)
 
 	//spam adding copies of the last row
-	spamRows(false, tests, input)
+	spamRows(true, tests, input)
+
+	//spamm adding blank columns
+	spamCols(false, tests, input)
+
+	//spam adding copies of the last column
+	spamCols(true, tests, input)
 
 	//TODO: probably close the channel here?
 }
