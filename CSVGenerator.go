@@ -45,7 +45,14 @@ func (s *mCSVHolder) read(file string) {
 	}
 	s.rows = len(s.lines)
 	operation := fmt.Sprintf("Read in CSV from: %s with %d rows, %d cols \n", file, s.rows, s.columns)
-	s.description = append(s.description, operation)
+	s.addChange(operation)
+}
+
+/*
+ * Add a change to the description
+ */
+ func (s *mCSVHolder) addChange(change string) {
+	s.description = append(s.description, change)
 }
 
 /*
@@ -76,10 +83,10 @@ func (s *mCSVHolder) display() {
 func (s *mCSVHolder) deleteRow(u int) {
 	if u < s.rows {
 		s.lines = append(s.lines[:u], s.lines[u+1:]...)
-		s.description = append(s.description, fmt.Sprintf("Removed row %d from CSV\n", u))
+		s.addChange(fmt.Sprintf("Removed row %d from CSV\n", u))
 		s.rows--
 	} else {
-		s.description = append(s.description, fmt.Sprintf("No row %d to remove from CSV\n", u))
+		s.addchange(fmt.Sprintf("No row %d to remove from CSV\n", u))
 	}
 
 }
@@ -93,10 +100,10 @@ func (s *mCSVHolder) deleteCol(u int) {
 		for i, line := range s.lines {
 			s.lines[i] = append(line[:u], line[u+1:]...)
 		}
-		s.description = append(s.description, fmt.Sprintf("Removed column %d from CSV\n", u))
+		s.addChange(Sprintf("Removed column %d from CSV\n", u))
 		s.columns--
 	} else {
-		s.description = append(s.description, fmt.Sprintf("No Column %d to delete from CSV\n", u))
+		s.addChange(fmt.Sprintf("No Column %d to delete from CSV\n", u))
 	}
 
 }
@@ -121,7 +128,7 @@ func (s *mCSVHolder) addRow(l int, rowToAdd []string) {
 		operation += fmt.Sprintf("%d is not a valid location to insert a row\n", l)
 	}
 
-	s.description = append(s.description, operation)
+	s.addChange(operation)
 }
 
 /*
@@ -143,7 +150,7 @@ func (s *mCSVHolder) addColumn(l int, colToAdd []string) {
 
 		s.columns++
 	}
-	s.description = append(s.description, operation)
+	s.addChange(operation)
 
 }
 
@@ -178,7 +185,7 @@ func (s *mCSVHolder) copyCol(c int) {
 		col := s.getCol(c)
 		s.addColumn(c, col)
 
-		s.description = append(s.description, fmt.Sprintln("coppied csv column", c))
+		s.addChange(fmt.Sprintln("coppied csv column", c))
 	}
 }
 
@@ -189,7 +196,7 @@ func (s *mCSVHolder) copyRow(r int) {
 	if r < s.rows {
 		c := s.getrRow(r)
 		s.addRow(r, c)
-		s.description = append(s.description, fmt.Sprintln("coppied csv row", r))
+		s.addChange(fmt.Sprintln("coppied csv row", r))
 	}
 }
 
