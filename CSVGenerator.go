@@ -45,13 +45,13 @@ func (s *mCSVHolder) read(file string) {
 	}
 	s.rows = len(s.lines)
 	operation := fmt.Sprintf("Read in CSV from: %s with %d rows, %d cols \n", file, s.rows, s.columns)
-	s.addChange(operation)
+	s.addToDesc(operation)
 }
 
 /*
  * Add a change to the description
  */
- func (s *mCSVHolder) addChange(change string) {
+ func (s *mCSVHolder) addToDesc(change string) {
 	s.description = append(s.description, change)
 }
 
@@ -83,10 +83,10 @@ func (s *mCSVHolder) display() {
 func (s *mCSVHolder) deleteRow(u int) {
 	if u < s.rows {
 		s.lines = append(s.lines[:u], s.lines[u+1:]...)
-		s.addChange(fmt.Sprintf("Removed row %d from CSV\n", u))
+		s.addToDesc(fmt.Sprintf("Removed row %d from CSV\n", u))
 		s.rows--
 	} else {
-		s.addchange(fmt.Sprintf("No row %d to remove from CSV\n", u))
+		s.addToDesc(fmt.Sprintf("No row %d to remove from CSV\n", u))
 	}
 
 }
@@ -100,10 +100,10 @@ func (s *mCSVHolder) deleteCol(u int) {
 		for i, line := range s.lines {
 			s.lines[i] = append(line[:u], line[u+1:]...)
 		}
-		s.addChange(Sprintf("Removed column %d from CSV\n", u))
+		s.addToDesc(Sprintf("Removed column %d from CSV\n", u))
 		s.columns--
 	} else {
-		s.addChange(fmt.Sprintf("No Column %d to delete from CSV\n", u))
+		s.addToDesc(fmt.Sprintf("No Column %d to delete from CSV\n", u))
 	}
 
 }
@@ -128,7 +128,7 @@ func (s *mCSVHolder) addRow(l int, rowToAdd []string) {
 		operation += fmt.Sprintf("%d is not a valid location to insert a row\n", l)
 	}
 
-	s.addChange(operation)
+	s.addToDesc(operation)
 }
 
 /*
@@ -150,7 +150,7 @@ func (s *mCSVHolder) addColumn(l int, colToAdd []string) {
 
 		s.columns++
 	}
-	s.addChange(operation)
+	s.addToDesc(operation)
 
 }
 
@@ -185,7 +185,7 @@ func (s *mCSVHolder) copyCol(c int) {
 		col := s.getCol(c)
 		s.addColumn(c, col)
 
-		s.addChange(fmt.Sprintln("coppied csv column", c))
+		s.addToDesc(fmt.Sprintln("coppied csv column", c))
 	}
 }
 
@@ -196,7 +196,7 @@ func (s *mCSVHolder) copyRow(r int) {
 	if r < s.rows {
 		c := s.getrRow(r)
 		s.addRow(r, c)
-		s.addChange(fmt.Sprintln("coppied csv row", r))
+		s.addToDesc(fmt.Sprintln("coppied csv row", r))
 	}
 }
 
@@ -318,8 +318,16 @@ func spamRows(copies bool, tests chan<- TestCase, s mCSVHolder) {
 /*
  * Blank out the csv
  */
-func blankCSV(copies bool, tests chan<- TestCase, s mCSVHolder) {
+func blankCSV(tests chan<- TestCase, s mCSVHolder) {
 
+	blankRow := make([]string, s.columns)
+	
+	t := newCSV("Blank csv with original number of rows and columns")
+	for i := 0; i < s.rows; i++ {
+		t.addRow(blankRow)
+	}
+
+	tests<- t.generateTestCase()
 }
 
 /*
@@ -331,6 +339,9 @@ func generateCSVs(tests chan<- TestCase, file string) {
 
 	//put the original input file into the test
 	tests <- input.generateTestCase()
+
+	//test blanking the content of the csv
+	blankCSV(tests, input)
 
 	//spam adding blank rows
 	input = newCSV("Spamming blank CSV rows")
@@ -351,6 +362,7 @@ func generateCSVs(tests chan<- TestCase, file string) {
 	input = newCSV("Spamming copies CSV cols")
 	input.read(file)
 	spamCols(true, tests, input)
+
 
 	//TODO: probably close the channel here?
 }
