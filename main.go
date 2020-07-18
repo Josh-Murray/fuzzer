@@ -24,6 +24,14 @@ func main() {
 		fmt.Println("Unable to read input file")
 		return
 	}
+
+	if isValidCSV(os.Args[2]) {
+		generatorToHarness := make(chan TestCase)
+		go generateCSVs(generatorToHarness, os.Args[2])
+		go harness(5, "./"+os.Args[1], generatorToHarness, harnessToInteresting)
+	}
+
+
 	// create mutator threads
 	for i := 0; i < 4; i++ {
 		go func(i int) {
