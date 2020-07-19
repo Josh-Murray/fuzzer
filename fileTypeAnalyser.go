@@ -32,14 +32,13 @@ func isValidCSV(file string) bool {
 	reader := csv.NewReader(csvFile)
 
 	for {
-		line, err := reader.Read()
+		_, err := reader.Read()
 		if err == io.EOF {
 			break
 		} else if err != nil {
 			log.Println(err)
 			return false
 		}
-		fmt.Println(line, "with length", len(line))
 	}
 	return true
 }
