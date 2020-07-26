@@ -30,8 +30,10 @@ func traceSyscalls(pid int, ws *syscall.WaitStatus) execTrace {
 			log.Fatal("traceSyscalls failed to call Wait4")
 		}
 
-		// Return on program exit or crash.
-		if ws.Exited() == true || ws.StopSignal() == syscall.SIGSEGV {
+		// Return on program exit, crash or abort.
+		if ws.Exited() == true ||
+			ws.StopSignal() == syscall.SIGSEGV ||
+			ws.StopSignal() == syscall.SIGABRT {
 			return curExecTrace
 		}
 
@@ -115,8 +117,27 @@ func harness(id int, cmd string,
 			//interestCases <- inputCase
 		}
 
+		// Perform process cleanup on abort.
+		var aborted bool = false
+		if ws.StopSignal() == syscall.SIGABRT {
+			aborted = true
+
+			err = syscall.PtraceDetach(procPid)
+			if err != nil {
+				log.Printf("Harness with id %d failed to detach: %s\n",
+					id, err.Error())
+			}
+
+			_, err = syscall.Wait4(procPid, &ws, syscall.WALL, nil)
+			if err != nil {
+				log.Fatalf("Harness with id %d failed to wait for tracee "+
+					"on abort: %s\n", id, err.Error())
+			}
+
+		}
+
 		// Report segfaults and ignore other exit causes.
-		if ws.StopSignal() == syscall.SIGSEGV {
+		if ws.StopSignal() == syscall.SIGSEGV && aborted == false {
 			log.Printf("Harness with id %d crashed process with pid %d\n",
 				id, procPid)
 			crashReport(inputCase)
