@@ -3,7 +3,6 @@ package main
 import (
 	"os"
 	"aqwari.net/xml/xmltree"
-<<<<<<< HEAD
 	"fmt"
 	"log"
 	"io/ioutil"
@@ -43,7 +42,7 @@ func parse(file string, s *deserializedXML) {
 		log.Fatal(err)
 	}
 
-	s.XMLTree, err := xmlTree.Parse(xmlBytes)
+	s.XMLTree, err = xmltree.Parse(xmlBytes)
 	if err != nil {
 		log.Fatal(err)
 	}
