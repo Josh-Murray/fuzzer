@@ -1,7 +1,7 @@
 package main
 
 import (
-	syscall "golang.org/x/sys/unix"
+	"syscall"
 )
 
 /*

@@ -1,11 +1,10 @@
 package main
 
 import (
-	syscall "golang.org/x/sys/unix"
 	"log"
 	"os"
-	"os/exec"
 	"runtime"
+	"syscall"
 )
 
 /*
@@ -61,40 +60,46 @@ func harness(id int, cmd string,
 
 	for inputCase := range inputCases {
 		var err error
-		procCmd := exec.Command(cmd)
-		procCmd.SysProcAttr = &syscall.SysProcAttr{Ptrace: true}
-		procStdin, err := procCmd.StdinPipe()
+
+		// Pipe used to pass input to binary stdin.
+		procPipe, harnessPipe, err := os.Pipe()
 		if err != nil {
-			log.Fatalf("Harness with id %d failed to connect stdin pipe: %s\n",
+			log.Fatalf("Harness with id %d failed to create pipe: %s\n",
 				id, err.Error())
 		}
 
+		var pAttr syscall.ProcAttr
+		pAttr.Sys = &syscall.SysProcAttr{Ptrace: true}
+
+		// Ignore process stdout/stderr.
+		pAttr.Files = make([]uintptr, 1)
+		pAttr.Files[0] = procPipe.Fd()
+
 		// Lock OS thread as per syscall.SysProcAttr documentation.
 		runtime.LockOSThread()
-		err = procCmd.Start()
+
+		procPid, err := syscall.ForkExec(cmd, nil, &pAttr)
 		if err != nil {
 			log.Fatalf("Harness with id %d failed to start program: %s\n",
 				id, err.Error())
 		}
 
-		procPid := procCmd.Process.Pid
-
-		// Child process recieves signal on startup.
+		// Child process recieves signal on startup due to ptrace.
 		var ws syscall.WaitStatus
 		_, err = syscall.Wait4(procPid, &ws, syscall.WALL, nil)
 		if err != nil {
-			log.Fatalf("Harness with id %d failed to wait: %s\n",
+			log.Fatalf("Harness with id %d failed to wait for tracee: %s\n",
 				id, err.Error())
 		}
 
-		_, err = procStdin.Write(inputCase.input)
+		_, err = harnessPipe.Write(inputCase.input)
 		if err != nil {
 			log.Fatalf("Harness with id %d failed to write to program: %s\n",
 				id, err.Error())
 		}
 
 		// Process may need pipe closed to continue.
-		err = procStdin.Close()
+		err = harnessPipe.Close()
 		if err != nil {
 			log.Printf("Harness with id %d failed to manually close stdin pipe.\n",
 				id)
@@ -116,6 +121,8 @@ func harness(id int, cmd string,
 				id, procPid)
 			crashReport(inputCase)
 		}
+
+		procPipe.Close()
 	}
 }
 
