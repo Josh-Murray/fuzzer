@@ -6,23 +6,24 @@ import (
 	"fmt"
 	"log"
 	"io/ioutil"
+	"math/rand"
 )
 
 
 /*
- * XMLSlice is a slice of pointers to all elements in the tree, 
+ * elemSet is a slice of pointers to all elements in the tree, 
  * allowing an element to be randomly selected in O(1) time. 
  * XMLTree is the root element.  
  */
 type mXMLHolder struct {
 	XMLTree	*xmltree.Element
-	XMLSlice []*xmltree.Element
+	elemSet []*xmltree.Element
 	description []string
 }
 
-func createXMLHolder(initialDescription string) mXMLHolder {
+func createXMLHolder(description string) mXMLHolder {
 	s := mXMLHolder{}
-	s.description = append(s.description, initialDescription)
+	s.description = append(s.description, description)
 	return s
 }
 
@@ -54,7 +55,7 @@ func (s *mXMLHolder) read(file string) {
 /*
  * Returns a slice of all Elements in the tree t
  */
-func initXMLSlice(t *xmltree.Element) []*xmltree.Element {
+func getElemSet(t *xmltree.Element) []*xmltree.Element {
 	queue := []*xmltree.Element{}
 	queue = append(queue, t)
 	res := []*xmltree.Element{}
