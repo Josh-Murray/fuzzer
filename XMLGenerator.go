@@ -59,7 +59,7 @@ func getElemSet(t *xmltree.Element) []*xmltree.Element {
 	elems := t.Flatten()
 
 	// add root of the tree to elems since the Flatten method
-	// doesn't do it. 
+	// doesn't do it.
 	elems = append(elems, t)
 	return elems
 }
@@ -85,6 +85,7 @@ func childlessClone(e *xmltree.Element) *xmltree.Element {
 	content := make([]byte, len(e.Content))
 	copy(content, e.Content)
 	clone.Content = content
+	clone.Children = []xmltree.Element{}
 	return clone
 }
 
@@ -103,4 +104,23 @@ func (s *mXMLHolder) spamElementBreadthWise() {
 		parent.Children = append(parent.Children, *clone)
 	}
 
+}
+
+/*
+ * Randomly selects two elements, a parent and a child.
+ * The child is recursively added to itself creating a tree.
+ * This tree is then added to the parent. 
+ */
+func (s *mXMLHolder) spamElementDepthWise() {
+	parent := selectElement(s)
+	child := selectElement(s)
+
+	var root *xmltree.Element
+	for i := 0; i < 10; i++ {
+		root = childlessClone(child)
+		root.Children = append(root.Children, *child)
+		child = root
+	}
+
+	parent.Children = append(parent.Children, *root)
 }
