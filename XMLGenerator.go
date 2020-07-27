@@ -7,11 +7,11 @@ import (
 	"log"
 	"io/ioutil"
 	"math/rand"
+	"time"
 )
 
-
 /*
- * elemSet is a slice of pointers to all elements in the tree, 
+ * elemSet is a slice of pointers to all unique elements in the tree, 
  * allowing an element to be randomly selected in O(1) time. 
  * XMLTree is the root element.  
  */
@@ -56,37 +56,51 @@ func (s *mXMLHolder) read(file string) {
  * Returns a slice of all Elements in the tree t
  */
 func getElemSet(t *xmltree.Element) []*xmltree.Element {
-	queue := []*xmltree.Element{}
-	queue = append(queue, t)
-	res := []*xmltree.Element{}
-	return BFSUtil(queue, res)
+	elems := t.Flatten()
+
+	// add root of the tree to elems since the Flatten method
+	// doesn't do it. 
+	elems = append(elems, t)
+	return elems
 }
 
 /*
- * a utility function to perform BFS given a queue of Elements to visit. 
- * BFSUtil returns a slice of all Elements visited. 
+ * randomly selects an element from the pool of elements in
+ * a mXMLHolder
  */
-func BFSUtil(queue []*xmltree.Element, res []*xmltree.Element) []*xmltree.Element {
-	// all elements have been visited if the queue is empty. 	
-	if len(queue) == 0 {
-		return res
-	}
-
-	// visit element at the front of the queue and add it to res
-	// to mark it as visited.
-	elem := queue[0]
-	res = append(res, elem)
-
-	// add all elem's children to the queue to mark them as
-	// still to be visited. 
-	for i := range elem.Children {
-		queue = append(queue, &elem.Children[i])
-	}
-
-	// visit next element in the queue. 
-	return BFSUtil(queue[1:],res)
+func selectElement(s *mXMLHolder) *xmltree.Element {
+	seed := rand.NewSource(time.Now().UnixNano())
+	r := rand.New(seed)
+	i := r.Intn(len(s.elemSet))
+	return s.elemSet[i]
 }
 
+/*
+ * Creates a new Element which contains the same StartElement and
+ * and Content as the element e. The new Element has no children. 
+ */
+func childlessClone(e *xmltree.Element) *xmltree.Element {
+	clone := new(xmltree.Element)
+	clone.StartElement = e.StartElement.Copy()
+	content := make([]byte, len(e.Content))
+	copy(content, e.Content)
+	clone.Content = content
+	return clone
+}
 
+/*
+ * Randomly selects two elements from the element pool. 
+ * One element is chosen to be the parent, the other element is
+ * chosen to be the child. Multiple childless copies of the child 
+ * are added to the parent. 
+ */
+func (s *mXMLHolder) spamElementBreadthWise() {
+	parent := selectElement(s)
+	child := selectElement(s)
 
+	for i := 0; i < 10; i++ {
+		clone := childlessClone(child)
+		parent.Children = append(parent.Children, *clone)
+	}
 
+}
