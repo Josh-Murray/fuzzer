@@ -55,7 +55,8 @@ func traceSyscalls(pid int, ws *syscall.WaitStatus) execTrace {
  */
 func harness(id int, cmd string,
 	inputCases <-chan TestCase,
-	interestCases chan<- TestCase) {
+	interestCases chan<- TestCase,
+	crashCases chan<- TestCase) {
 
 	// List of unique execution traces for this harness.
 	var uniqueTraces []execTrace
@@ -140,45 +141,9 @@ func harness(id int, cmd string,
 		if ws.StopSignal() == syscall.SIGSEGV && aborted == false {
 			log.Printf("Harness with id %d crashed process with pid %d\n",
 				id, procPid)
-			crashReport(inputCase)
+			crashCases <- inputCase
 		}
 
 		procPipe.Close()
-	}
-}
-
-/*
- * Creates a "bad.txt" file in the current directory containing
- * the input inside crashCase
- */
-func crashReport(crashCase TestCase) {
-	var doExit bool = true
-
-	f, err := os.OpenFile("bad.txt", os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0644)
-	// Log the crashing input on any file operation failure.
-	if err != nil {
-		log.Println("Failed to create crash output file. Crashing output:")
-		log.Println(string(crashCase.input))
-		return
-	}
-
-	nWritten, err := f.Write(crashCase.input)
-	// Log crash output on failed or incomplete writes.
-	if err != nil || nWritten != len(crashCase.input) {
-		log.Println("Failed to write output to crash file. Crashing output:")
-		log.Println(string(crashCase.input))
-		// Continue execution to try hit another crash.
-		doExit = false
-	}
-
-	err = f.Close()
-	if err != nil {
-		log.Fatal("crashReport failed to close the file")
-	}
-
-	// Stop execution on first bad output hit unless there was an error
-	// in file generation.
-	if doExit {
-		os.Exit(0)
 	}
 }
