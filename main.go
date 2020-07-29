@@ -29,9 +29,10 @@ func main() {
 
 	if isValidCSV(os.Args[2]) {
 		generatorToHarness := make(chan TestCase)
-		go generateCSVs(generatorToHarness, os.Args[2])
-		go harness(5, "./"+os.Args[1], generatorToHarness,
-			harnessToInteresting, crashCases)
+		permutator := createPermutator(os.Args[2])
+		go permutator.permutateInput(generatorToHarness, os.Args[2])
+		//go permutateInput(generatorToHarness, os.Args[2])
+		go harness(5, "./"+os.Args[1], generatorToHarness, harnessToInteresting)
 	}
 
 	// create mutator threads

@@ -15,7 +15,8 @@ type parsedCSV struct {
 }
 
 /*
- * Create a new CSVHolder initialised with the initial description
+ * Create a new parsedCSV struct initialised with the 
+ * initial description
  *
  */
 func newCSV(initialDescription string) parsedCSV {
@@ -25,7 +26,7 @@ func newCSV(initialDescription string) parsedCSV {
 }
 
 /*
- * read the CSV specified by file into the CSVHolder
+ * read the CSV specified by file into a parsedCSV struct
  */
 func (s *parsedCSV) read(file string) {
 	csvFile, _ := os.Open(file)
@@ -43,6 +44,7 @@ func (s *parsedCSV) read(file string) {
 
 		s.columns = len(line)
 	}
+
 	s.rows = len(s.lines)
 	operation := fmt.Sprintf("Read in CSV from: %s with %d rows, %d cols \n", file, s.rows, s.columns)
 	s.addToDesc(operation)
@@ -334,7 +336,7 @@ func blankCSV(tests chan<- TestCase, s parsedCSV) {
 /*
  * Take a CSV file as base and permute variations into the test channel
  */
-func generateCSVs(tests chan<- TestCase, file string) {
+func (s parsedCSV) permutateInput(tests chan<- TestCase, file string) {
 	input := newCSV("Initial input")
 	input.read(file)
 
