@@ -8,7 +8,7 @@ import (
 	"strings"
 )
 
-type mCSVHolder struct {
+type parsedCSV struct {
 	lines         [][]string
 	rows, columns int
 	description   []string
@@ -18,8 +18,8 @@ type mCSVHolder struct {
  * Create a new CSVHolder initialised with the initial description
  *
  */
-func newCSV(initialDescription string) mCSVHolder {
-	s := mCSVHolder{}
+func newCSV(initialDescription string) parsedCSV {
+	s := parsedCSV{}
 	s.description = append(s.description, initialDescription)
 	return s
 }
@@ -27,7 +27,7 @@ func newCSV(initialDescription string) mCSVHolder {
 /*
  * read the CSV specified by file into the CSVHolder
  */
-func (s *mCSVHolder) read(file string) {
+func (s *parsedCSV) read(file string) {
 	csvFile, _ := os.Open(file)
 	reader := csv.NewReader(csvFile)
 	defer csvFile.Close()
@@ -51,14 +51,14 @@ func (s *mCSVHolder) read(file string) {
 /*
  * Add a change to the description
  */
- func (s *mCSVHolder) addToDesc(change string) {
+ func (s *parsedCSV) addToDesc(change string) {
 	s.description = append(s.description, change)
 }
 
 /*
  * Display the current CSV in STDOUT
  */
-func (s *mCSVHolder) display() {
+func (s *parsedCSV) display() {
 	fmt.Printf("Description: %s\n", s.description)
 	fmt.Printf("Rows: %d, Columns: %d\n", s.rows, s.columns)
 	fmt.Print("Column \t\t|")
@@ -80,7 +80,7 @@ func (s *mCSVHolder) display() {
 /*
  * Delete row u
  */
-func (s *mCSVHolder) deleteRow(u int) {
+func (s *parsedCSV) deleteRow(u int) {
 	if u < s.rows {
 		s.lines = append(s.lines[:u], s.lines[u+1:]...)
 		s.addToDesc(fmt.Sprintf("Removed row %d from CSV\n", u))
@@ -94,7 +94,7 @@ func (s *mCSVHolder) deleteRow(u int) {
 /*
  * Delete column u
  */
-func (s *mCSVHolder) deleteCol(u int) {
+func (s *parsedCSV) deleteCol(u int) {
 
 	if u < s.columns {
 		for i, line := range s.lines {
@@ -111,7 +111,7 @@ func (s *mCSVHolder) deleteCol(u int) {
 /*
  * Insert a row rowToAdd into location l
  */
-func (s *mCSVHolder) addRow(l int, rowToAdd []string) {
+func (s *parsedCSV) addRow(l int, rowToAdd []string) {
 	var operation string
 	if l < s.rows {
 		if len(rowToAdd) == s.columns {
@@ -134,7 +134,7 @@ func (s *mCSVHolder) addRow(l int, rowToAdd []string) {
 /*
  * Insert a column colToAdd into location l
  */
-func (s *mCSVHolder) addColumn(l int, colToAdd []string) {
+func (s *parsedCSV) addColumn(l int, colToAdd []string) {
 	var operation string
 	if l > s.columns {
 		l = s.columns
@@ -157,7 +157,7 @@ func (s *mCSVHolder) addColumn(l int, colToAdd []string) {
 /*
  * Return a []string representing column c in s
  */
-func (s *mCSVHolder) getCol(c int) []string {
+func (s *parsedCSV) getCol(c int) []string {
 	col := []string{}
 	for _, row := range s.lines {
 		col = append(col, row[c])
@@ -169,7 +169,7 @@ func (s *mCSVHolder) getCol(c int) []string {
  * Return a deep copy of row r
  * TODO: Investigate why this isnt working
  */
-func (s *mCSVHolder) getrRow(r int) []string {
+func (s *parsedCSV) getrRow(r int) []string {
 	cpy := []string{}
 	for _, str := range s.lines[r] {
 		cpy = append(cpy, fmt.Sprintf("%s", str))
@@ -180,7 +180,7 @@ func (s *mCSVHolder) getrRow(r int) []string {
 /*
  * Insert a duplicate of column c
  */
-func (s *mCSVHolder) copyCol(c int) {
+func (s *parsedCSV) copyCol(c int) {
 	if c < s.columns {
 		col := s.getCol(c)
 		s.addColumn(c, col)
@@ -192,7 +192,7 @@ func (s *mCSVHolder) copyCol(c int) {
 /*
  * Insert a duplicate of row r
  */
-func (s *mCSVHolder) copyRow(r int) {
+func (s *parsedCSV) copyRow(r int) {
 	if r < s.rows {
 		c := s.getrRow(r)
 		s.addRow(r, c)
@@ -203,7 +203,7 @@ func (s *mCSVHolder) copyRow(r int) {
 /*
  * convert s into a string representing the content of the CSV
  */
-func (s *mCSVHolder) flatten() string {
+func (s *parsedCSV) flatten() string {
 	o := ""
 	for _, row := range s.lines {
 		for j, col := range row {
@@ -218,9 +218,9 @@ func (s *mCSVHolder) flatten() string {
 }
 
 /*
- * parse a string into the CSVHolder
+ * parse a string into the parsedCSV struct
  */
-func (s *mCSVHolder) expand(in string) {
+func (s *parsedCSV) expand(in string) {
 	// TODO: can probably refactor this to reduce code duplication with readCSV
 	reader := csv.NewReader(strings.NewReader(in))
 	s.lines = [][]string{}
@@ -241,14 +241,14 @@ func (s *mCSVHolder) expand(in string) {
 /*
  * Flatten then reexpand inplace
  */
-func (s *mCSVHolder) reExpand() {
+func (s *parsedCSV) reExpand() {
 	s.expand(s.flatten())
 }
 
 /*
  * Insert a blank row into position r
  */
-func (s *mCSVHolder) addBlankRow(r int) {
+func (s *parsedCSV) addBlankRow(r int) {
 	blankRow := make([]string, s.columns)
 	s.addRow(r, blankRow)
 }
@@ -256,7 +256,7 @@ func (s *mCSVHolder) addBlankRow(r int) {
 /*
  * Insert a blank column into position c
  */
-func (s *mCSVHolder) addBlankCol(c int) {
+func (s *parsedCSV) addBlankCol(c int) {
 	blankCol := make([]string, s.rows)
 	s.addColumn(c, blankCol)
 }
@@ -264,7 +264,7 @@ func (s *mCSVHolder) addBlankCol(c int) {
 /*
  * Deep copy (hopefully) s into a testcase
  */
-func (s *mCSVHolder) generateTestCase() TestCase {
+func (s *parsedCSV) generateTestCase() TestCase {
 	ts := TestCase{}
 	ts.changes = append(ts.changes, s.description...)
 	content := s.flatten()
@@ -276,7 +276,7 @@ func (s *mCSVHolder) generateTestCase() TestCase {
  * Teses making lots of copies of a row. If copies is true then copy the last row
  * otherwise add blank rows
  */
-func spamRows(copies bool, tests chan<- TestCase, s mCSVHolder) {
+func spamRows(copies bool, tests chan<- TestCase, s parsedCSV) {
 	//TODO: abstract magic numbers
 	for i := 1; i < 4096; i++ {
 		// copy the last row
@@ -298,7 +298,7 @@ func spamRows(copies bool, tests chan<- TestCase, s mCSVHolder) {
  * Teses making lots of copies of a column. If copies is true then copy the last row
  * otherwise add blank rows
  */
- func spamCols(copies bool, tests chan<- TestCase, s mCSVHolder) {
+ func spamCols(copies bool, tests chan<- TestCase, s parsedCSV) {
 	//TODO: abstract magic numbers
 	for i := 1; i < 4096; i++ {
 		// copy the last row
@@ -319,7 +319,7 @@ func spamRows(copies bool, tests chan<- TestCase, s mCSVHolder) {
 /*
  * Blank out the csv
  */
-func blankCSV(tests chan<- TestCase, s mCSVHolder) {
+func blankCSV(tests chan<- TestCase, s parsedCSV) {
 
 	blankRow := make([]string, s.columns)
 
