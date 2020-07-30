@@ -5,6 +5,7 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
+	"log"
 )
 
 /*
@@ -16,47 +17,64 @@ func main() {
 		fmt.Println("Usage:", os.Args[0], "<binary>", "<input file>")
 		return
 	}
+
 	// create channels for mutator and harness
-	mutatorToHarness := make(chan TestCase)
+	inputToHarness := make(chan TestCase)
+	inputToMutator := make(chan TestCase)
 	harnessToInteresting := make(chan TestCase)
 	crashCases := make(chan TestCase)
 
-	input, err := ioutil.ReadFile(os.Args[2])
+	_, err := ioutil.ReadFile(os.Args[2])
 	if err != nil {
-		fmt.Println("Unable to read input file")
-		return
+		log.Fatal("Unable to read input file")
 	}
 
-	if isValidCSV(os.Args[2]) {
-		generatorToHarness := make(chan TestCase)
-		permutator := createPermutator(os.Args[2])
-		go permutator.permutateInput(generatorToHarness, os.Args[2])
-		//go permutateInput(generatorToHarness, os.Args[2])
-		go harness(5, "./"+os.Args[1], generatorToHarness, harnessToInteresting)
-	}
+	// create permutator threads 
+	startPermutators(inputToHarness, inputToMutator, os.Args[2])
 
 	// create mutator threads
-	for i := 0; i < 4; i++ {
-		go func(i int) {
-			mutator := createMutator(mutatorToHarness, int64(i))
-			for {
-				temp := append([]byte{}, input...)
-				ts := &TestCase{temp, []string{}}
-				mutator.mutate(ts)
-			}
-		}(i)
-	}
-	// create harness threads
-	for i := 0; i < 5; i++ {
-		go harness(i, "./"+os.Args[1], mutatorToHarness,
-			harnessToInteresting, crashCases)
+	startMutators(inputToHarness, inputToMutator)
 
-	}
+	// create harness threads
+	startHarnesses(os.Args[1], inputToHarness, harnessToInteresting)
 
 	for crashCase := range crashCases {
 		crashReport(crashCase)
 	}
+}
 
+func startMutators(outChan chan TestCase, inChan chan TestCase) {
+	for i:= 0; i < 4; i++ {
+		go func (i int) {
+			mutator := createMutator(outChan, inChan, int64(i))
+			for {
+				mutator.mutate()
+			}
+		}(i)
+	}
+
+
+}
+
+func startPermutators(toHarness chan TestCase, toMutator chan TestCase, file string) {
+	for i := 0; i < 4; i++ {
+		go func() {
+			permutator := createPermutator(file)
+			for {
+				permutator.permutateInput(toHarness, toMutator, file)
+			}
+		}()
+	}
+}
+
+func startHarnesses(binary string, inChan chan TestCase, outChan chan TestCase) {
+
+	for i := 0; i < 4; i++ {
+		go harness(i, "./"+binary, inChan, outChan)
+
+	}
+
+	harness(4, "./"+binary, inChan, outChan)
 }
 
 /*
@@ -94,3 +112,4 @@ func crashReport(crashCase TestCase) {
 		os.Exit(0)
 	}
 }
+
