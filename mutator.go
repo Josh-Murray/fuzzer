@@ -17,14 +17,15 @@ type Mutator struct {
 	 * num mutations
 	 * etc
 	 */
+	inChan	chan TestCase
 	outChan chan TestCase
 	rng     *rand.Rand
 }
 
 // TODO work out configurables, they might be needed here
-func createMutator(out chan TestCase, seed int64) Mutator {
+func createMutator(out chan TestCase, in chan TestCase, seed int64) Mutator {
 	r := rand.New(rand.NewSource(seed))
-	return Mutator{rng: r, outChan: out}
+	return Mutator{rng: r, outChan: out, inChan: in}
 }
 
 func replace(o []string, changes *[]string, i int, v string) {
@@ -288,45 +289,47 @@ func (m Mutator) interestingByte(ts *TestCase) {
 	ts.input[pos] = byte(val)
 }
 
-func (m Mutator) mutate(ts *TestCase) {
+func (m Mutator) mutate() {
+	ts := <-m.inChan
 	nMutations := m.rng.Intn(16)
 	for i := 0; i < nMutations; i++ {
 		selection := m.rng.Intn(10)
 		// TODO work out configurables, they might be needed here
 		switch selection {
 		case 0:
-			m.flipBits(ts)
+			m.flipBits(&ts)
 		case 1:
-			m.flipBytes(ts)
+			m.flipBytes(&ts)
 		case 2:
-			m.deleteSlice(ts)
+			m.deleteSlice(&ts)
 		case 3:
-			m.duplicateSlice(ts)
+			m.duplicateSlice(&ts)
 		case 4:
-			m.interestingByte(ts)
+			m.interestingByte(&ts)
 		case 5:
-			err := m.mutateInts(ts)
+			err := m.mutateInts(&ts)
 			if err != nil {
 				continue
 			}
 		case 6:
-			err := m.mutateFloats(ts)
+			err := m.mutateFloats(&ts)
 			if err != nil {
 				continue
 			}
 		case 7:
-			err := m.mutateHex(ts)
+			err := m.mutateHex(&ts)
 			if err != nil {
 				continue
 			}
 		case 8:
-			m.mutateReverse(ts)
+			m.mutateReverse(&ts)
 		case 9:
-			m.mutateShuffle(ts)
+			m.mutateShuffle(&ts)
 		default:
 			fmt.Printf("[WARN] mutator broken")
 			//dunno
 		}
 	}
-	m.outChan <- *ts
+
+	m.outChan <- ts
 }
