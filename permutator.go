@@ -6,7 +6,7 @@ import (
 )
 
 type permutator interface {
-	permutateInput(ts chan<- TestCase, file string)
+	permutateInput(h chan<- TestCase, m chan<- TestCase, file string)
 }
 
 /* 

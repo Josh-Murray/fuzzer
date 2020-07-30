@@ -336,38 +336,39 @@ func blankCSV(tests chan<- TestCase, s parsedCSV) {
 /*
  * Take a CSV file as base and permute variations into the test channel
  */
-func (s parsedCSV) permutateInput(tests chan<- TestCase, file string) {
+func (s parsedCSV) permutateInput(toHarness chan<- TestCase,
+	toMutator chan<- TestCase, file string) {
+
 	input := newCSV("Initial input")
 	input.read(file)
 
 	//put the original input file into the test
-	tests <- input.generateTestCase()
+	toHarness <- input.generateTestCase()
+	toMutator <- input.generateTestCase()
 
 	//test blanking the content of the csv
-	blankCSV(tests, input)
+	blankCSV(toHarness, input)
 
 	//spam adding blank rows
 	input = newCSV("Spamming blank CSV rows")
 	input.read(file)
-	spamRows(false, tests, input)
+	spamRows(false, toHarness, input)
 
 	//spam adding copies of the last row
 	input = newCSV("Spamming copies CSV rows")
 	input.read(file)
-	spamRows(true, tests, input) 
+	spamRows(true, toHarness, input)
 
 	//spam adding blank columns
 	input = newCSV("Spamming blank CSV cols")
 	input.read(file)
-	spamCols(false, tests, input)
+	spamCols(false, toHarness, input)
 
 	//spam adding copies of the last column
 	input = newCSV("Spamming copies CSV cols")
 	input.read(file)
-	spamCols(true, tests, input)
+	spamCols(true, toHarness, input)
 
-
-	//TODO: probably close the channel here?
 }
 
 /*
