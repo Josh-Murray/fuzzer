@@ -8,27 +8,52 @@ import (
 	"strings"
 )
 
+/*
+ * parsedCSV contains parsed data from a CSV file
+ */
 type parsedCSV struct {
 	lines         [][]string
 	rows, columns int
 	description   []string
 }
 
-/*
- * Create a new parsedCSV struct initialised with the 
- * initial description
- *
+/* permCSV represents a CSV permutator. 
+ * permCSV conforms to the permutator interface in that it implements
+ * the method permutateInput. 
+ * permCSV contains two channels, toHarness and toMutator, that it sends
+ * TestCases to.
+ * currPerm represents the current permutation the permutator is working on.
  */
-func newCSV(initialDescription string) parsedCSV {
-	s := parsedCSV{}
-	s.description = append(s.description, initialDescription)
-	return s
+type permCSV struct {
+	toHarness     chan TestCase
+	toMutator	chan TestCase
+	currPerm *parsedCSV
+}
+
+
+/*
+ * Create a new parsedCSV struct
+ */
+func newCSV() *parsedCSV {
+	c := new(parsedCSV)
+	return c
 }
 
 /*
- * read the CSV specified by file into a parsedCSV struct
+ * TODO: add Description
  */
-func (s *parsedCSV) read(file string) {
+func newCSVPermutator(harnessChan chan TestCase, mutatorChan chan TestCase) *permCSV{
+	p := new(permCSV)
+	p.toHarness = harnessChan
+	p.toMutator = mutatorChan
+	return p
+}
+
+/*
+ * parse the CSV specified by file into a parsedCSV struct
+ */
+func parse(file string, c *parsedCSV) {
+
 	csvFile, _ := os.Open(file)
 	reader := csv.NewReader(csvFile)
 	defer csvFile.Close()
@@ -40,20 +65,20 @@ func (s *parsedCSV) read(file string) {
 		} else if err != nil {
 			panic(err)
 		}
-		s.lines = append(s.lines, line)
+		c.lines = append(c.lines, line)
 
-		s.columns = len(line)
+		c.columns = len(line)
 	}
 
-	s.rows = len(s.lines)
-	operation := fmt.Sprintf("Read in CSV from: %s with %d rows, %d cols \n", file, s.rows, s.columns)
-	s.addToDesc(operation)
+	c.rows = len(c.lines)
+	operation := fmt.Sprintf("Read in CSV from: %s with %d rows, %d cols \n", file, c.rows, c.columns)
+	c.addToDesc(operation)
 }
 
 /*
- * Add a change to the description
+ * Add a change to the description in a parsedCSV
  */
- func (s *parsedCSV) addToDesc(change string) {
+func (s *parsedCSV) addToDesc(change string) {
 	s.description = append(s.description, change)
 }
 
@@ -111,18 +136,18 @@ func (s *parsedCSV) deleteCol(u int) {
 }
 
 /*
- * Insert a row rowToAdd into location l
+ * Insert a row rowToAdd into location l in the parsedCSV c
  */
-func (s *parsedCSV) addRow(l int, rowToAdd []string) {
+func addRow(l int, rowToAdd []string, c *parsedCSV) {
 	var operation string
-	if l < s.rows {
-		if len(rowToAdd) == s.columns {
-			end := s.lines[l:]
-			beginning := append(s.lines[:l], rowToAdd)
-			s.lines = append(beginning, end...)
+	if l < c.rows {
+		if len(rowToAdd) == c.columns {
+			end := c.lines[l:]
+			beginning := append(c.lines[:l], rowToAdd)
+			c.lines = append(beginning, end...)
 			operation = fmt.Sprintln("added csv row ", l, " content ", rowToAdd)
 
-			s.rows++
+			c.rows++
 		} else {
 			operation += "Number of columns in the row being added does not match"
 		}
@@ -130,38 +155,38 @@ func (s *parsedCSV) addRow(l int, rowToAdd []string) {
 		operation += fmt.Sprintf("%d is not a valid location to insert a row\n", l)
 	}
 
-	s.addToDesc(operation)
+	c.addToDesc(operation)
 }
 
 /*
  * Insert a column colToAdd into location l
  */
-func (s *parsedCSV) addColumn(l int, colToAdd []string) {
+func addColumn(l int, colToAdd []string, currPerm *parsedCSV) {
 	var operation string
-	if l > s.columns {
-		l = s.columns
+	if l > currPerm.columns {
+		l = currPerm.columns
 	}
-	if len(colToAdd) == s.rows {
-		for i := 0; i < s.rows; i++ {
-			end := s.lines[i][l:]
-			beginning := append(s.lines[i][:l], colToAdd[i])
-			s.lines[i] = append(beginning, end...)
+	if len(colToAdd) == currPerm.rows {
+		for i := 0; i < currPerm.rows; i++ {
+			end := currPerm.lines[i][l:]
+			beginning := append(currPerm.lines[i][:l], colToAdd[i])
+			currPerm.lines[i] = append(beginning, end...)
 
 		}
 		operation = fmt.Sprintln("added csv col ", l, " content ", colToAdd)
 
-		s.columns++
+		currPerm.columns++
 	}
-	s.addToDesc(operation)
+	currPerm.addToDesc(operation)
 
 }
 
 /*
- * Return a []string representing column c in s
+ * Return a []string representing column c in currPerm
  */
-func (s *parsedCSV) getCol(c int) []string {
+func getCol(c int, currPerm *parsedCSV) []string {
 	col := []string{}
-	for _, row := range s.lines {
+	for _, row := range currPerm.lines {
 		col = append(col, row[c])
 	}
 	return col
@@ -171,34 +196,34 @@ func (s *parsedCSV) getCol(c int) []string {
  * Return a deep copy of row r
  * TODO: Investigate why this isnt working
  */
-func (s *parsedCSV) getrRow(r int) []string {
+func getrRow(r int, currPerm *parsedCSV) []string {
 	cpy := []string{}
-	for _, str := range s.lines[r] {
+	for _, str := range currPerm.lines[r] {
 		cpy = append(cpy, fmt.Sprintf("%s", str))
 	}
 	return cpy
 }
 
 /*
- * Insert a duplicate of column c
+ * Insert a duplicate of column c 
  */
-func (s *parsedCSV) copyCol(c int) {
-	if c < s.columns {
-		col := s.getCol(c)
-		s.addColumn(c, col)
+func copyCol(c int, currPerm *parsedCSV) {
+	if c < currPerm.columns {
+		col := getCol(c, currPerm)
+		addColumn(c, col, currPerm)
 
-		s.addToDesc(fmt.Sprintln("coppied csv column", c))
+		currPerm.addToDesc(fmt.Sprintln("coppied csv column", c))
 	}
 }
 
 /*
  * Insert a duplicate of row r
  */
-func (s *parsedCSV) copyRow(r int) {
-	if r < s.rows {
-		c := s.getrRow(r)
-		s.addRow(r, c)
-		s.addToDesc(fmt.Sprintln("coppied csv row", r))
+func copyRow(r int, c *parsedCSV) {
+	if r < c.rows {
+		row := getrRow(r, c)
+		addRow(r, row, c)
+		c.addToDesc(fmt.Sprintln("coppied csv row", r))
 	}
 }
 
@@ -248,49 +273,56 @@ func (s *parsedCSV) reExpand() {
 }
 
 /*
- * Insert a blank row into position r
+ * Insert a blank row into position r in the parsedCSV c
  */
-func (s *parsedCSV) addBlankRow(r int) {
-	blankRow := make([]string, s.columns)
-	s.addRow(r, blankRow)
+func addBlankRow(r int, currPerm *parsedCSV) {
+	blankRow := make([]string, currPerm.columns)
+	addRow(r, blankRow, currPerm)
 }
 
 /*
  * Insert a blank column into position c
  */
-func (s *parsedCSV) addBlankCol(c int) {
-	blankCol := make([]string, s.rows)
-	s.addColumn(c, blankCol)
+func addBlankCol(c int, currPerm *parsedCSV) {
+	blankCol := make([]string, currPerm.rows)
+	addColumn(c, blankCol, currPerm)
 }
 
 /*
- * Deep copy (hopefully) s into a testcase
+ * Deep copy (hopefully) the current permutation currPerm in
+ * the permutator p into a TestCase.
+ * Sends the resulting TestCase across the two channels
+ * in the permutator p, toHarness and toMutator.
  */
-func (s *parsedCSV) generateTestCase() TestCase {
+func generateTestCase(p *permCSV) {
 	ts := TestCase{}
-	ts.changes = append(ts.changes, s.description...)
-	content := s.flatten()
+	ts.changes = append(ts.changes, p.currPerm.description...)
+	content := p.currPerm.flatten()
 	ts.input = append(ts.input, content...)
-	return ts
+
+	p.toHarness <- ts
+	p.toMutator <- ts
 }
+
 
 /*
  * Teses making lots of copies of a row. If copies is true then copy the last row
  * otherwise add blank rows
  */
-func spamRows(copies bool, tests chan<- TestCase, s parsedCSV) {
+func spamRows(copies bool, currPerm *parsedCSV) {
+	if copies {
+		currPerm.addToDesc("Spamming blank CSV rows")
+	} else {
+		currPerm.addToDesc("Spamming copies CSV rows")
+	}
+
 	//TODO: abstract magic numbers
 	for i := 1; i < 4096; i++ {
-		// copy the last row
+		lastRow := currPerm.rows - 1
 		if copies {
-			s.copyRow(s.rows - 1)
+			copyRow(lastRow, currPerm)
 		} else {
-			s.addBlankRow(s.rows - 1)
-		}
-
-		//only send every nth case to test
-		if i < 3 || i%16 == 0 {
-			tests <- s.generateTestCase()
+			addBlankRow(lastRow, currPerm)
 		}
 	}
 
@@ -300,20 +332,22 @@ func spamRows(copies bool, tests chan<- TestCase, s parsedCSV) {
  * Teses making lots of copies of a column. If copies is true then copy the last row
  * otherwise add blank rows
  */
- func spamCols(copies bool, tests chan<- TestCase, s parsedCSV) {
+func spamCols(copies bool, currPerm *parsedCSV) {
+	if copies {
+		currPerm.addToDesc("Spamming blank CSV cols")
+	} else {
+		currPerm.addToDesc("Spamming copies CSV cols")
+	}
+
 	//TODO: abstract magic numbers
 	for i := 1; i < 4096; i++ {
-		// copy the last row
+		lastColumn := currPerm.columns - 1
 		if copies {
-			s.copyCol(s.columns - 1)
+			copyCol(lastColumn, currPerm)
 		} else {
-			s.addBlankCol(s.columns - 1)
+			addBlankCol(lastColumn, currPerm)
 		}
 
-		//only send every nth case to test
-		if i < 3 || i%16 == 0 {
-			tests <- s.generateTestCase()
-		}
 	}
 
 }
@@ -321,74 +355,70 @@ func spamRows(copies bool, tests chan<- TestCase, s parsedCSV) {
 /*
  * Blank out the csv
  */
-func blankCSV(tests chan<- TestCase, s parsedCSV) {
+func blankCSV(currPerm *parsedCSV) {
 
-	blankRow := make([]string, s.columns)
+	blankRow := make([]string, currPerm.columns)
 
-	t := newCSV("Blank csv with original number of rows and columns")
-	for i := 0; i < s.rows; i++ {
-		t.addRow(1, blankRow)
+	newPerm := newCSV()
+	newPerm.addToDesc("Blank CSV with original number of rows and columns")
+
+	for i := 0; i < currPerm.rows; i++ {
+		addRow(1, blankRow, newPerm)
 	}
 
-	tests<- t.generateTestCase()
-}
-
-/*
- * Take a CSV file as base and permute variations into the test channel
- */
-func (s parsedCSV) permutateInput(toHarness chan<- TestCase,
-	toMutator chan<- TestCase, file string) {
-
-	input := newCSV("Initial input")
-	input.read(file)
-
-	//put the original input file into the test
-	toHarness <- input.generateTestCase()
-	toMutator <- input.generateTestCase()
-
-	//test blanking the content of the csv
-	blankCSV(toHarness, input)
-
-	//spam adding blank rows
-	input = newCSV("Spamming blank CSV rows")
-	input.read(file)
-	spamRows(false, toHarness, input)
-
-	//spam adding copies of the last row
-	input = newCSV("Spamming copies CSV rows")
-	input.read(file)
-	spamRows(true, toHarness, input)
-
-	//spam adding blank columns
-	input = newCSV("Spamming blank CSV cols")
-	input.read(file)
-	spamCols(false, toHarness, input)
-
-	//spam adding copies of the last column
-	input = newCSV("Spamming copies CSV cols")
-	input.read(file)
-	spamCols(true, toHarness, input)
+	/* set the current permutation as the new permutation
+	 * with the blanked out rows 
+	 */
+	currPerm = newPerm
 
 }
 
 /*
- * visual test of the CSV generator
+ * Doesn't perform any permutation on parsedCSV. 
+ * Simply converts parsedCSV to a TestCase and sends it to the
+ * two channels toHarness and toMutator. 
  */
-func testCSVGenerator() {
-	input := newCSV("Initial input")
-	input.read("valid.csv")
-	input.copyRow(0)
-	input.copyRow(0)
-	input.copyRow(0)
-	input.copyRow(0)
-	input.copyRow(0)
-	input.reExpand()
-	input.addBlankRow(0)
-	input.copyRow(0)
-	input.copyRow(0)
-	input.reExpand()
-	input.lines[0][0] = "s"
-	input.lines[3][0] = "s"
-	input.display()
+func plainCSV(currPerm *parsedCSV) {
+	currPerm.addToDesc("Initial Input")
+}
+
+/*
+ * Take a CSV file as base and permute variations, Converting
+ * the permutations to a TestCase and sending it across the two
+ * channels toHarness and toMutator
+ */
+func (p *permCSV) permutateInput(file string) {
+
+	p.currPerm = newCSV()
+	parse(file, p.currPerm)
+	plainCSV(p.currPerm)
+	generateTestCase(p)
+
+	p.currPerm = newCSV()
+	parse(file, p.currPerm)
+	blankCSV(p.currPerm)
+	generateTestCase(p)
+
+	p.currPerm = newCSV()
+	parse(file, p.currPerm)
+	spamRows(false, p.currPerm)
+	generateTestCase(p)
+
+	p.currPerm = newCSV()
+	parse(file, p.currPerm)
+	spamRows(true, p.currPerm)
+	generateTestCase(p)
+
+	p.currPerm = newCSV()
+	parse(file, p.currPerm)
+	spamCols(false, p.currPerm)
+	generateTestCase(p)
+
+	p.currPerm = newCSV()
+	parse(file, p.currPerm)
+	spamCols(true, p.currPerm)
+	generateTestCase(p)
 
 }
+
+
