@@ -24,7 +24,7 @@ func main() {
 	harnessToInteresting := make(chan TestCase)
 	crashCases := make(chan TestCase)
 
-	_, err := ioutil.ReadFile(os.Args[2])
+	input, err := ioutil.ReadFile(os.Args[2])
 	if err != nil {
 		log.Fatal("Unable to read input file")
 	}
@@ -33,7 +33,7 @@ func main() {
 	startPermutators(inputToHarness, inputToMutator, os.Args[2])
 
 	// create mutator threads
-	startMutators(inputToHarness, inputToMutator)
+	startMutators(inputToHarness, inputToMutator, input)
 
 	// create harness threads
 	startHarnesses(os.Args[1], inputToHarness, harnessToInteresting)
@@ -43,10 +43,10 @@ func main() {
 	}
 }
 
-func startMutators(outChan chan TestCase, inChan chan TestCase) {
-	for i:= 0; i < 4; i++ {
-		go func (i int) {
-			mutator := createMutator(outChan, inChan, int64(i))
+func startMutators(outChan chan TestCase, inChan chan TestCase, input []byte) {
+	for i := 0; i < 4; i++ {
+		go func(i int) {
+			mutator := createMutator(outChan, inChan, input, int64(i))
 			for {
 				mutator.mutate()
 			}

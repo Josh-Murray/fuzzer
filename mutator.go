@@ -10,6 +10,16 @@ import (
 	"strings"
 )
 
+/*
+ * A Mutator has a reference to the bytes read in 
+ * from the input file provided to the fuzzer. 
+ * This is a temporary fix at the moment. 
+ * Mutators should be mutating TestCases received from a channel that
+ * a permutator is sending to. Not all permutators have been implemented so
+ * a mutator may not receive a TestCase from the channel inChan. 
+ * In this case, a mutator will create a new TestCase using fileBytes as
+ * the input and perform mutate on that.
+ */
 type Mutator struct {
 	// TODO setup channel for inputs and a worker function to use inputs
 	/* TODO add configurables here
@@ -20,13 +30,16 @@ type Mutator struct {
 	inChan	chan TestCase
 	outChan chan TestCase
 	rng     *rand.Rand
+	fileBytes []byte
 }
 
 // TODO work out configurables, they might be needed here
-func createMutator(out chan TestCase, in chan TestCase, seed int64) Mutator {
+func createMutator(out chan TestCase, in chan TestCase,
+	fileBytes []byte, seed int64) Mutator {
 	r := rand.New(rand.NewSource(seed))
-	return Mutator{rng: r, outChan: out, inChan: in}
+	return Mutator{in, out, r, fileBytes}
 }
+
 
 func replace(o []string, changes *[]string, i int, v string) {
 	c := fmt.Sprintf("Replacing input[%d]=%s with %s\n", i, o[i], v)
@@ -289,8 +302,29 @@ func (m Mutator) interestingByte(ts *TestCase) {
 	ts.input[pos] = byte(val)
 }
 
+/*
+ * returns a TestCase received from the mutators inChan channel. If no
+ * input was received from the channel, a new TestCase is created 
+ * using the fileBytes stored in the mutator
+ */
+func (m Mutator) getTestCase() TestCase {
+	var ts TestCase
+
+	select {
+	case ts = <-m.inChan:
+	default:
+		temp := append([]byte{}, m.fileBytes...)
+		ts = TestCase{temp, []string{}}
+	}
+
+	return ts
+
+}
+
 func (m Mutator) mutate() {
-	ts := <-m.inChan
+
+	ts := m.getTestCase()
+
 	nMutations := m.rng.Intn(16)
 	for i := 0; i < nMutations; i++ {
 		selection := m.rng.Intn(10)
