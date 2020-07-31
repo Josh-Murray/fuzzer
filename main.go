@@ -5,7 +5,6 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
-	"log"
 )
 
 /*
@@ -29,7 +28,7 @@ func main() {
 		log.Fatal("Unable to read input file")
 	}
 
-	// create permutator threads 
+	// create permutator threads
 	startPermutators(inputToHarness, inputToMutator, os.Args[2])
 
 	// create mutator threads
