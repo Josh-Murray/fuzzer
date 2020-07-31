@@ -35,7 +35,7 @@ func main() {
 	startMutators(inputToHarness, inputToMutator, input)
 
 	// create harness threads
-	startHarnesses(os.Args[1], inputToHarness, harnessToInteresting)
+	startHarnesses(os.Args[1], inputToHarness, harnessToInteresting, crashCases)
 
 	for crashCase := range crashCases {
 		crashReport(crashCase)
@@ -64,14 +64,15 @@ func startPermutators(toHarness chan TestCase, toMutator chan TestCase, file str
 	}
 }
 
-func startHarnesses(binary string, inChan chan TestCase, outChan chan TestCase) {
+func startHarnesses(binary string, inChan chan TestCase,
+	outChan chan TestCase, crashChan chan TestCase) {
 
 	for i := 0; i < 4; i++ {
-		go harness(i, "./"+binary, inChan, outChan)
+		go harness(i, "./"+binary, inChan, outChan, crashChan)
 
 	}
 
-	harness(4, "./"+binary, inChan, outChan)
+	harness(4, "./"+binary, inChan, outChan, crashChan)
 }
 
 /*
