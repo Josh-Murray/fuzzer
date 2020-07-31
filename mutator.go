@@ -96,7 +96,7 @@ func isAInt(o string) bool {
 }
 
 func (m Mutator) interestingInteger(i int) string {
-	candidates := []string{"0", "-1", "-100", "100"}
+	candidates := []string{"0", "-1", "-100", "100", "4294967295", "-4294967295"}
 	return candidates[m.rng.Intn(len(candidates))]
 }
 
