@@ -59,9 +59,7 @@ func startPermutators(toHarness chan TestCase, toMutator chan TestCase, file str
 	for i := 0; i < 4; i++ {
 		go func() {
 			permutator := createPermutator(toHarness, toMutator, file)
-			for {
-				permutator.permutateInput(file)
-			}
+			permutator.permutateInput(file)
 		}()
 	}
 }

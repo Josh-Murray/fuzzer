@@ -366,34 +366,37 @@ func plainCSV(perm *deserializedCSV) {
  */
 func (p *permCSV) permutateInput(file string) {
 
-	p.currPerm = newCSV()
-	parse(file, p.currPerm)
-	plainCSV(p.currPerm)
-	generateTestCase(p)
+	for {
 
-	p.currPerm = newCSV()
-	parse(file, p.currPerm)
-	blankCSV(p.currPerm)
-	generateTestCase(p)
+		p.currPerm = newCSV()
+		parse(file, p.currPerm)
+		plainCSV(p.currPerm)
+		generateTestCase(p)
 
-	p.currPerm = newCSV()
-	parse(file, p.currPerm)
-	spamRows(false, p.currPerm)
-	generateTestCase(p)
+		p.currPerm = newCSV()
+		parse(file, p.currPerm)
+		blankCSV(p.currPerm)
+		generateTestCase(p)
 
-	p.currPerm = newCSV()
-	parse(file, p.currPerm)
-	spamRows(true, p.currPerm)
-	generateTestCase(p)
+		p.currPerm = newCSV()
+		parse(file, p.currPerm)
+		spamRows(false, p.currPerm)
+		generateTestCase(p)
 
-	p.currPerm = newCSV()
-	parse(file, p.currPerm)
-	spamCols(false, p.currPerm)
-	generateTestCase(p)
+		p.currPerm = newCSV()
+		parse(file, p.currPerm)
+		spamRows(true, p.currPerm)
+		generateTestCase(p)
 
-	p.currPerm = newCSV()
-	parse(file, p.currPerm)
-	spamCols(true, p.currPerm)
-	generateTestCase(p)
+		p.currPerm = newCSV()
+		parse(file, p.currPerm)
+		spamCols(false, p.currPerm)
+		generateTestCase(p)
+
+		p.currPerm = newCSV()
+		parse(file, p.currPerm)
+		spamCols(true, p.currPerm)
+		generateTestCase(p)
+	}
 
 }
