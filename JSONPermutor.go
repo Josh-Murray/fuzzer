@@ -224,7 +224,6 @@ func (i *parsedJSON) generateTestCase() {
 	i.json.jsonObj = expandObject(i.original)
 	i.json.spam(i.rng)
 	ts := TestCase{}
-	ts.changes = append(ts.changes, i.json.description...)
 	content := i.json.flatten()
 	ts.input = append(ts.input, content...)
 	i.toMutator <- ts
