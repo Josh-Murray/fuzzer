@@ -57,10 +57,10 @@ func startMutators(outChan chan TestCase, inChan chan TestCase, input []byte) {
 
 func startPermutators(toHarness chan TestCase, toMutator chan TestCase, file string) {
 	for i := 0; i < 4; i++ {
-		go func() {
-			permutator := createPermutator(toHarness, toMutator, file)
+		go func(i int) {
+			permutator := createPermutator(toHarness, toMutator, file, int64(i))
 			permutator.permutateInput(file)
-		}()
+		}(i)
 	}
 }
 

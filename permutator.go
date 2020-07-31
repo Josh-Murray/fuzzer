@@ -13,7 +13,7 @@ type permutator interface {
  * TODO: Add XML and JSON to createPermutator.
  */
 func createPermutator(toHarness chan TestCase, toMutator chan TestCase,
-	file string) permutator {
+	file string, seed int64) permutator {
 
 	if isValidCSV(file) {
 		p := newCSVPermutator(toHarness, toMutator)
