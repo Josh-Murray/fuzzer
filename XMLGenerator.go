@@ -15,14 +15,14 @@ import (
  * allowing an element to be randomly selected in O(1) time. 
  * XMLTree is the root element.  
  */
-type mXMLHolder struct {
+type deserializedXML struct {
 	XMLTree	*xmltree.Element
 	elemSet []*xmltree.Element
 	description []string
 }
 
-func createXMLHolder(description string) mXMLHolder {
-	s := mXMLHolder{}
+func newXML(description string) deserializedXML {
+	s := deserializedXML{}
 	s.description = append(s.description, description)
 	return s
 }
@@ -30,7 +30,7 @@ func createXMLHolder(description string) mXMLHolder {
 /*
  * Reads the XML specified by file into the XMLHolder. 
  */
-func (s *mXMLHolder) read(file string) {
+func parse(file string, s *deserializedXML) {
 	xmlFile, err := os.Open(file)
 	if err != nil {
 		log.Fatal(err)
@@ -66,9 +66,9 @@ func getElemSet(t *xmltree.Element) []*xmltree.Element {
 
 /*
  * randomly selects an element from the pool of elements in
- * a mXMLHolder
+ * a deserializedXML
  */
-func selectElement(s *mXMLHolder) *xmltree.Element {
+func selectElement(s *deserializedXML) *xmltree.Element {
 	seed := rand.NewSource(time.Now().UnixNano())
 	r := rand.New(seed)
 	i := r.Intn(len(s.elemSet))
@@ -95,7 +95,7 @@ func childlessClone(e *xmltree.Element) *xmltree.Element {
  * chosen to be the child. Multiple childless copies of the child 
  * are added to the parent. 
  */
-func (s *mXMLHolder) spamElementBreadthWise() {
+func (s *deserializedXML) spamElementBreadthWise() {
 	parent := selectElement(s)
 	child := selectElement(s)
 
@@ -111,7 +111,7 @@ func (s *mXMLHolder) spamElementBreadthWise() {
  * The child is recursively added to itself creating a tree.
  * This tree is then added to the parent. 
  */
-func (s *mXMLHolder) spamElementDepthWise() {
+func (s *deserializedXML) spamElementDepthWise() {
 	parent := selectElement(s)
 	child := selectElement(s)
 
