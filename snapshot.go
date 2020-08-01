@@ -41,14 +41,14 @@ type Snapshot struct {
 /*
  * Runs the target binary specified by pid until it is in a state desirable
  * for memory snapshotting. The wait status ws is updated along the way.
- * This will run the binary until the first instruction in its .text segment is hit
+ * This will run the binary until the first read syscall from fd 0 (stdin)
  */
-func setupSnapshotState(pid int, ws *syscall.WaitStatus) {
+func setupSnapshotState(pid int, ws *syscall.WaitStatus, is64bit bool) {
 	var err error
 	var regs syscall.PtraceRegs
 	for {
 		// Trace every instruction with ptrace until desired state.
-		err = syscall.PtraceSingleStep(pid)
+		err = syscall.PtraceSyscall(pid, 0)
 		if err != nil {
 			log.Fatalf("Failed to set up snapshot state (PtraceSingleStep):"+
 				"%s\n", err.Error())
@@ -75,12 +75,17 @@ func setupSnapshotState(pid int, ws *syscall.WaitStatus) {
 
 		}
 
-		// Check if instruction pointer lies in .text segment with a crude
-		// address check (for 32bit binaries.
-		// This is the exit condition for the set up.
-		pc := regs.PC()
-		if pc < uint64(0xf0000000) {
-			return
+		// Check if read syscall is made from fd 0.
+		// This check is architecture dependent.
+		// This is the exit condition for the snapshot set up.
+		if is64bit {
+			if regs.Orig_rax == 0x0 && regs.Rdi == 0x0 {
+				return
+			}
+		} else {
+			if regs.Orig_rax == 0x3 && regs.Rbx == 0x0 {
+				return
+			}
 		}
 
 	}
