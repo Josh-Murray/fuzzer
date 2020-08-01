@@ -2,14 +2,10 @@ package main
 
 import (
 	"encoding/csv"
-	"encoding/json"
 	"encoding/xml"
-	"fmt"
 	"io"
-	"io/ioutil"
 	"log"
-	"os"
-	"path/filepath"
+	"bytes"
 )
 
 func check(e error) {
@@ -24,12 +20,11 @@ func isValidXML(data []byte) bool {
 		return true
 	}
 	return false
-	//return xml.Unmarshal(data, new(interface{})) != nil
 }
 
-func isValidCSV(file string) bool {
-	csvFile, _ := os.Open(file)
-	reader := csv.NewReader(csvFile)
+func isValidCSV(fileBytes []byte) bool {
+	r := bytes.NewReader(fileBytes)
+	reader := csv.NewReader(r)
 
 	for {
 		_, err := reader.Read()
@@ -43,44 +38,3 @@ func isValidCSV(file string) bool {
 	return true
 }
 
-func isValidJSON(file string) bool {
-	data, err := ioutil.ReadFile(file)
-	check(err)
-	return json.Valid(data)
-}
-
-func detectType(file string) {
-
-	f, err := os.Open(file)
-	check(err)
-	f.Close()
-
-	data, err := ioutil.ReadFile(file)
-	check(err)
-	//fmt.Println(data)
-	ext := filepath.Ext(file)
-	fmt.Print("Extension is: ", ext)
-
-	if json.Valid(data) {
-		fmt.Print(" valid json")
-	} else {
-		fmt.Print(" invalid json")
-	}
-
-	if isValidXML(data) {
-		fmt.Print(" valid xml")
-	} else {
-		fmt.Print(" invalid xml")
-		fmt.Println(xml.Unmarshal(data, new(interface{})))
-	}
-
-	if isValidCSV(file) {
-		fmt.Print(" valid csv")
-	} else {
-		fmt.Print("invalid csv")
-	}
-}
-
-//func main() {
-//	detectType("mutator.go")
-//}

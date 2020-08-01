@@ -1,6 +1,8 @@
 package main
 
-import ()
+import (
+	"io/ioutil"
+)
 
 type permutator interface {
 	permutateInput(file string)
@@ -15,8 +17,13 @@ type permutator interface {
 func createPermutator(toHarness chan TestCase, toMutator chan TestCase,
 	file string, seed int64) permutator {
 
-	if isValidCSV(file) {
+	fileBytes, _ := ioutil.ReadFile(file)
+
+	if isValidCSV(fileBytes) {
 		p := newCSVPermutator(toHarness, toMutator)
+		return p
+	} else if isValidXML(fileBytes) {
+		p := newXMLPermutator(toHarness, toMutator, seed)
 		return p
 	}
 
