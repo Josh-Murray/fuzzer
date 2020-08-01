@@ -20,5 +20,10 @@ func createPermutator(toHarness chan TestCase, toMutator chan TestCase,
 		return p
 	}
 
+	if isValidJSON(file) {
+		p := newJSONPermutator(toHarness, toMutator, seed)
+		return p
+	}
+
 	return nil
 }

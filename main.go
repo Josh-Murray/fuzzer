@@ -52,7 +52,6 @@ func startMutators(outChan chan TestCase, inChan chan TestCase, input []byte) {
 		}(i)
 	}
 
-
 }
 
 func startPermutators(toHarness chan TestCase, toMutator chan TestCase, file string) {
@@ -109,4 +108,3 @@ func crashReport(crashCase TestCase) {
 		os.Exit(0)
 	}
 }
-

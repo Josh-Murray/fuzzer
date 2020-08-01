@@ -43,6 +43,12 @@ func isValidCSV(file string) bool {
 	return true
 }
 
+func isValidJSON(file string) bool {
+	data, err := ioutil.ReadFile(file)
+	check(err)
+	return json.Valid(data)
+}
+
 func detectType(file string) {
 
 	f, err := os.Open(file)

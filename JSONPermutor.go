@@ -77,7 +77,7 @@ func (j *jsonArray) spam(r *rand.Rand) {
 	if len(j.values) == 0 {
 		return
 	}
-	for i := 0; i < r.Intn(10)+3; i++ {
+	for i := 0; i < r.Intn(15)+3; i++ {
 		// this is not a deep copy
 		t := j.values[r.Intn(len(j.values))]
 		j.values = append(j.values, t)
@@ -109,7 +109,7 @@ func (j *jsonObject) spam(r *rand.Rand) {
 	if len(j.values) == 0 {
 		return
 	}
-	for i := 0; i < r.Intn(10)+3; i++ {
+	for i := 0; i < r.Intn(15)+3; i++ {
 		// this is not a deep copy
 		t := j.values[r.Intn(len(j.values))]
 		j.values = append(j.values, t)
@@ -153,7 +153,7 @@ func (j *jsonCase) spam(r *rand.Rand) {
 	if len(j.jsonObj) == 0 {
 		return
 	}
-	for i := 0; i < r.Intn(10)+3; i++ {
+	for i := 0; i < r.Intn(15)+3; i++ {
 		// this is not a deep copy
 		t := j.jsonObj[r.Intn(len(j.jsonObj))]
 		t.spam(r)
@@ -231,7 +231,7 @@ func (i *parsedJSON) generateTestCase() {
 }
 
 // Main method for the permutor
-func (i *parsedJSON) permuteInput(fileName string) {
+func (i *parsedJSON) permutateInput(fileName string) {
 	i.parseFile(fileName)
 	// generate new cases forever
 	for {
