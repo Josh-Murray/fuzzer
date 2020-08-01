@@ -21,16 +21,39 @@ type deserializedXML struct {
 	description []string
 }
 
-func newXML(description string) deserializedXML {
-	s := deserializedXML{}
-	s.description = append(s.description, description)
+
+/*
+ * permXML represents an XML permutator. 
+ * permXML contains two channels, toHarness and toMutator that it sends
+ * TestCases to. 
+ * currPerm represents the current permutation the permutator is working on
+ */
+type permXML struct {
+	toHarness chan TestCase
+	toMutator chan TestCase
+	rng *rand.Rand
+	currPerm *deserializedXML
+}
+
+func newXML() *deserializedXML {
+	s := new(deserializedXML)
 	return s
 }
 
+func newXMLPermutator(harnessChan chan TestCase, mutatorChan chan TestCase, seed int64) *permXML {
+	p := new(permXML)
+	p.toHarness = harnessChan
+	p.toMutator = mutatorChan
+	r := rand.New(rand.NewSource(seed))
+	p.rng = r
+	return p
+}
+
+
 /*
- * Reads the XML specified by file into the XMLHolder. 
+ * Reads the XML specified by file into a deserializedXML struct. 
  */
-func parse(file string, s *deserializedXML) {
+func parseXML(file string, s *deserializedXML) {
 	xmlFile, err := os.Open(file)
 	if err != nil {
 		log.Fatal(err)
@@ -123,4 +146,15 @@ func (s *deserializedXML) spamElementDepthWise() {
 	}
 
 	parent.Children = append(parent.Children, *root)
+}
+
+/*
+ * Takes an XML file as base and permutates it. The resulting permutations
+ * are converted to a TestCase and are sent across the two channels
+ * to Harness and toMutator
+ */
+func (p *permXML) permutateInput(file string) {
+	for {
+		p.currPerm = newXML()
+	}
 }
