@@ -1,6 +1,7 @@
 package main
 
 import (
+	"debug/elf"
 	"log"
 	"os"
 	"runtime"
@@ -14,9 +15,10 @@ import (
  * with ptrace enabled and has had syscall.Wait4 called on it once.
  * Continues program until exit or crash: ws will be updated with the status.
  * Takes as arguments the pid of process to trace and WaitStatus to update.
+ * Also requires an argument identifying if target binary is an 64bit ELF
  * Returns an execTrace struct identifying the execution run.
  */
-func traceSyscalls(pid int, ws *syscall.WaitStatus) execTrace {
+func traceSyscalls(pid int, ws *syscall.WaitStatus, is64bit bool) execTrace {
 	var err error
 	var regs syscall.PtraceRegs
 	var curExecTrace execTrace
@@ -57,6 +59,18 @@ func traceSyscalls(pid int, ws *syscall.WaitStatus) execTrace {
 
 		traceRegs := getInterestingRegs(&regs)
 		curExecTrace.trace = append(curExecTrace.trace, traceRegs)
+
+		// Also return on exit/exit_group syscalls
+		// These sycall numbers depend on architecture.
+		if is64bit {
+			if regs.Orig_rax == 0x3c || regs.Orig_rax == 0xe7 {
+				return curExecTrace
+			}
+		} else {
+			if regs.Orig_rax == 0x1 || regs.Orig_rax == 0xfc {
+				return curExecTrace
+			}
+		}
 	}
 }
 
@@ -70,59 +84,68 @@ func harness(id int, cmd string,
 	interestCases chan<- TestCase,
 	crashCases chan<- TestCase) {
 
+	var err error
+
+	// Figure out architecture- only 32/64bit x86 binaries are supported.
+	var is64bit = false
+	elfFile, err := elf.Open(cmd)
+	if err != nil {
+		log.Fatalf("Failed to open %s: %s\n", cmd, err.Error())
+	}
+
+	if elfFile.FileHeader.Class == elf.ELFCLASS64 {
+		is64bit = true
+	}
+
+	elfFile.Close()
 	// List of unique execution traces for this harness.
 	var uniqueTraces []execTrace
 
+	var pAttr syscall.ProcAttr
+	pAttr.Sys = &syscall.SysProcAttr{Ptrace: true}
+
+	// Pipe needs to be created and given to new process to create
+	// entry in /proc/pid/fd/, but otherwise is unused.
+	procPipe, harnessPipe, err := os.Pipe()
+	if err != nil {
+		log.Fatalf("Harness with id %d failed to create pipe: %s\n",
+			id, err.Error())
+	}
+	harnessPipe.Close()
+	pAttr.Files = make([]uintptr, 1)
+	pAttr.Files[0] = procPipe.Fd()
+
+	// Lock OS thread as per syscall.SysProcAttr documentation.
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
+	procPid, err := syscall.ForkExec(cmd, nil, &pAttr)
+	if err != nil {
+		log.Fatalf("Harness with id %d failed to start program: %s\n",
+			id, err.Error())
+	}
+
+	// Child process recieves signal on startup due to ptrace.
+	var ws syscall.WaitStatus
+	_, err = syscall.Wait4(procPid, &ws, syscall.WALL, nil)
+	if err != nil {
+		log.Fatalf("Harness with id %d failed to wait for tracee: %s\n",
+			id, err.Error())
+	}
+
+	// Run process until it's in a suitable state for snapshotting.
+	setupSnapshotState(procPid, &ws, is64bit)
+
+	// Save process state for future restorations.
+	var procSnapshot Snapshot
+	procSnapshot = makeSnapshot(procPid)
+
 	for inputCase := range inputCases {
-		var err error
 
-		// Pipe used to pass input to binary stdin.
-		procPipe, harnessPipe, err := os.Pipe()
-		if err != nil {
-			log.Fatalf("Harness with id %d failed to create pipe: %s\n",
-				id, err.Error())
-		}
-
-		var pAttr syscall.ProcAttr
-		pAttr.Sys = &syscall.SysProcAttr{Ptrace: true}
-
-		// Ignore process stdout/stderr.
-		pAttr.Files = make([]uintptr, 1)
-		pAttr.Files[0] = procPipe.Fd()
-
-		// Lock OS thread as per syscall.SysProcAttr documentation.
-		runtime.LockOSThread()
-
-		procPid, err := syscall.ForkExec(cmd, nil, &pAttr)
-		if err != nil {
-			log.Fatalf("Harness with id %d failed to start program: %s\n",
-				id, err.Error())
-		}
-
-		// Child process recieves signal on startup due to ptrace.
-		var ws syscall.WaitStatus
-		_, err = syscall.Wait4(procPid, &ws, syscall.WALL, nil)
-		if err != nil {
-			log.Fatalf("Harness with id %d failed to wait for tracee: %s\n",
-				id, err.Error())
-		}
-
-		_, err = harnessPipe.Write(inputCase.input)
-		if err != nil {
-			log.Fatalf("Harness with id %d failed to write to program: %s\n",
-				id, err.Error())
-		}
-
-		// Process may need pipe closed to continue.
-		err = harnessPipe.Close()
-		if err != nil {
-			log.Printf("Harness with id %d failed to manually close stdin pipe.\n",
-				id)
-		}
+		writeToProc(procPid, inputCase.input)
 
 		// Trace execution and report back interesting cases.
-		curExecTrace := traceSyscalls(procPid, &ws)
-		runtime.UnlockOSThread()
+		curExecTrace := traceSyscalls(procPid, &ws, is64bit)
 		if isUniqueTrace(curExecTrace, uniqueTraces) {
 			uniqueTraces = append(uniqueTraces, curExecTrace)
 			// If the channel is full, we ignore the interesting case
@@ -133,23 +156,10 @@ func harness(id int, cmd string,
 
 		}
 
-		// Perform process cleanup on abort.
+		// Check for abort signals so we can ignore them.
 		var aborted bool = false
 		if ws.StopSignal() == syscall.SIGABRT {
 			aborted = true
-
-			err = syscall.PtraceDetach(procPid)
-			if err != nil {
-				log.Printf("Harness with id %d failed to detach: %s\n",
-					id, err.Error())
-			}
-
-			_, err = syscall.Wait4(procPid, &ws, syscall.WALL, nil)
-			if err != nil {
-				log.Fatalf("Harness with id %d failed to wait for tracee "+
-					"on abort: %s\n", id, err.Error())
-			}
-
 		}
 
 		// Report segfaults and ignore other exit causes.
@@ -159,6 +169,7 @@ func harness(id int, cmd string,
 			crashCases <- inputCase
 		}
 
-		procPipe.Close()
+		// Restore process state for next run.
+		restoreSnapshot(procSnapshot)
 	}
 }
