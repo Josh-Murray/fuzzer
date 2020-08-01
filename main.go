@@ -72,7 +72,6 @@ func startHarnesses(binary string, inChan chan TestCase,
 
 	}
 
-	harness(4, "./"+binary, inChan, outChan, crashChan)
 }
 
 /*
