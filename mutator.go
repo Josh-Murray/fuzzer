@@ -330,3 +330,8 @@ func (m Mutator) mutate(ts *TestCase) {
 	}
 	m.outChan <- *ts
 }
+
+func (m Mutator) testMutate(ts *TestCase) {
+	m.mutateInts(ts)
+	m.outChan <- *ts
+}
