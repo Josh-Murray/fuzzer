@@ -27,7 +27,7 @@ func createPermutator(toHarness chan TestCase, toMutator chan TestCase,
 		return p
 	}
 
-	if isValidJSON(file) {
+	if isValidJSON(fileBytes) {
 		p := newJSONPermutator(toHarness, toMutator, seed)
 		return p
 	}
