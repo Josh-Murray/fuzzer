@@ -218,16 +218,18 @@ func writeToProc(pid int, input []byte) {
 	var err error
 	path := "/proc/" + strconv.Itoa(pid) + "/fd/0"
 
-	stdinFile, err := os.OpenFile(path, os.O_WRONLY, 0644)
+	stdinFile, err := syscall.Open(path, syscall.O_WRONLY|syscall.O_CLOEXEC|
+		syscall.O_NONBLOCK|syscall.O_SYNC, 0644)
 	if err != nil {
 		log.Fatalf("writeToProc failed to open process stdin: %s\n",
 			err.Error())
 	}
-	defer stdinFile.Close()
+	defer syscall.Close(stdinFile)
 
-	_, err = stdinFile.Write(input)
-	if err != nil {
-		// Attempt to continue from error.
-		log.Printf("Error during write to process stdin: %s\n", err.Error())
+	_, err = syscall.Write(stdinFile, input)
+	// Continue as normal on EAGAIN error.
+	if err != nil && err != syscall.EAGAIN {
+		log.Fatalf("writeToProc failed to write to output: %s\n",
+			err.Error())
 	}
 }
