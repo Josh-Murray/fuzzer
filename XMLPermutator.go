@@ -7,7 +7,6 @@ import (
 	"log"
 	"io/ioutil"
 	"math/rand"
-	"time"
 )
 
 /*
@@ -35,8 +34,15 @@ type permXML struct {
 	currPerm *deserializedXML
 }
 
-func newXML() *deserializedXML {
+/*
+ * creates a new deserializedXML struct. 
+ * Initialises the XMLTree field with parseXML.
+ * Initializes the elemSet field with getElemSet.
+ */
+func newXML(file string) *deserializedXML {
 	s := new(deserializedXML)
+	parseXML(file, s)
+	s.elemSet = getElemSet(s.XMLTree)
 	return s
 }
 
@@ -96,14 +102,12 @@ func getElemSet(t *xmltree.Element) []*xmltree.Element {
 }
 
 /*
- * randomly selects an element from the pool of elements in
- * a deserializedXML
+ * randomly selects an element from the set of elements elemSet in
+ * the current permutation, currPerm
  */
-func selectElement(s *deserializedXML) *xmltree.Element {
-	seed := rand.NewSource(time.Now().UnixNano())
-	r := rand.New(seed)
-	i := r.Intn(len(s.elemSet))
-	return s.elemSet[i]
+func (p *permXML) selectElement() *xmltree.Element {
+	i := p.rng.Intn(len(p.currPerm.elemSet))
+	return p.currPerm.elemSet[i]
 }
 
 /*
@@ -121,32 +125,38 @@ func childlessClone(e *xmltree.Element) *xmltree.Element {
 }
 
 /*
- * Randomly selects two elements from the element pool. 
- * One element is chosen to be the parent, the other element is
- * chosen to be the child. Multiple childless copies of the child 
+ * Two elements are randomly selected. One acts as the parent, the
+ * Other acts as the child. 
+ * Multiple childless copies of the child 
  * are added to the parent. 
  */
-func spamElementBreadthWise(perm *deserializedXML) {
-	parent := selectElement(perm)
-	child := selectElement(perm)
+func spamElementBreadthWise(p *permXML) {
+
+	parent := p.selectElement()
+	child := p.selectElement()
 
 	for i := 0; i < 25000; i++ {
 		clone := childlessClone(child)
 		parent.Children = append(parent.Children, *clone)
 	}
 
+	p.currPerm.addToDesc("Spamming Element Breadth Wise")
+
 }
 
 /*
- * Randomly selects two elements, a parent and a child.
+ * Two elements are randomly selected. One acts as the parent, the 
+ * other acts as the child
  * The child is recursively added to itself creating a tree.
  * This tree is then added to the parent. 
  */
-func  spamElementDepthWise (s *deserializedXML) {
-	parent := selectElement(s)
-	child := selectElement(s)
+func spamElementDepthWise (p *permXML) {
+
+	parent := p.selectElement()
+	child := p.selectElement()
 
 	var root *xmltree.Element
+
 	for i := 0; i < 25000; i++ {
 		root = childlessClone(child)
 		root.Children = append(root.Children, *child)
@@ -154,6 +164,8 @@ func  spamElementDepthWise (s *deserializedXML) {
 	}
 
 	parent.Children = append(parent.Children, *root)
+
+	p.currPerm.addToDesc("Spamming Element Depth Wise")
 }
 
 func (p *permXML) generateTestCase() {
@@ -181,21 +193,16 @@ func plainXML(perm *deserializedXML) {
  */
 func (p *permXML) permutateInput(file string) {
 	for {
-		p.currPerm = newXML()
-		parseXML(file, p.currPerm)
+		p.currPerm = newXML(file)
 		plainXML(p.currPerm)
 		p.generateTestCase()
 
-		p.currPerm = newXML()
-		parseXML(file, p.currPerm)
-		p.currPerm.elemSet = getElemSet(p.currPerm.XMLTree)
-		spamElementBreadthWise(p.currPerm)
+		p.currPerm = newXML(file)
+		spamElementBreadthWise(p)
 		p.generateTestCase()
 
-		p.currPerm = newXML()
-		parseXML(file, p.currPerm)
-		p.currPerm.elemSet = getElemSet(p.currPerm.XMLTree)
-		spamElementDepthWise(p.currPerm)
+		p.currPerm = newXML(file)
+		spamElementDepthWise(p)
 		p.generateTestCase()
 	}
 }
