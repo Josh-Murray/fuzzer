@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/csv"
 	"encoding/xml"
+	"encoding/json"
 	"io"
 	"log"
 	"bytes"
@@ -36,5 +37,9 @@ func isValidCSV(fileBytes []byte) bool {
 		}
 	}
 	return true
+}
+
+func isValidJSON(fileBytes []byte) bool {
+	return json.Valid(fileBytes)
 }
 
