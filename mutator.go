@@ -256,6 +256,10 @@ func (m Mutator) mutateReverse(ts *TestCase) {
 }
 
 func (m Mutator) flipBits(ts *TestCase) {
+	// cannot perform this on an empty slice
+	if len(ts.input) == 0 {
+		return
+	}
 	// flip bit in N% of bytes, could change to $config% bytes or randRange bytes
 	size := float64(len(ts.input)) * 0.05
 	nbytes := int(size)
@@ -272,6 +276,10 @@ func (m Mutator) flipBits(ts *TestCase) {
 }
 
 func (m Mutator) flipBytes(ts *TestCase) {
+	// cannot perform this on an empty slice
+	if len(ts.input) == 0 {
+		return
+	}
 	// flip N% of bytes
 	size := float64(len(ts.input)) * 0.05
 	nbytes := int(size)
@@ -314,6 +322,9 @@ func (m Mutator) duplicateSlice(ts *TestCase) {
 	// used len too much, use a variable instead
 	length := len(ts.input)
 
+	if length == 0 {
+		return
+	}
 	start := m.rng.Intn(length - 1)
 	size := float64(length) * 0.2
 	end := start + m.rng.Intn(int(size))
@@ -334,7 +345,7 @@ func (m Mutator) interestingByte(ts *TestCase) {
 	if len(ts.input) == 0 {
 		return
 	}
-	interesting := []int8{-127, -1, 0, 1, 127, '{', '}', ',', '<', '>'}
+	interesting := []int8{-127, -1, 0, 1, 127, '{', '}', ',', '<', '>', '[', ']', '%'}
 	val := interesting[m.rng.Intn(len(interesting))]
 	pos := m.rng.Intn(len(ts.input))
 	msg := fmt.Sprintf("Mutator performed 'interesting_byte' inserting int8 %d (%c) on byte %d\n", val, byte(val), pos)
