@@ -40,6 +40,14 @@ func newXML() *deserializedXML {
 	return s
 }
 
+/*
+ * converts the permutation into a byte slice representing the
+ * XML content
+ */
+func (perm *deserializedXML) marshal () []byte {
+	return xmltree.Marshal(perm.XMLTree)
+}
+
 func newXMLPermutator(harnessChan chan TestCase, mutatorChan chan TestCase, seed int64) *permXML {
 	p := new(permXML)
 	p.toHarness = harnessChan
@@ -118,11 +126,11 @@ func childlessClone(e *xmltree.Element) *xmltree.Element {
  * chosen to be the child. Multiple childless copies of the child 
  * are added to the parent. 
  */
-func (s *deserializedXML) spamElementBreadthWise() {
-	parent := selectElement(s)
-	child := selectElement(s)
+func spamElementBreadthWise(perm *deserializedXML) {
+	parent := selectElement(perm)
+	child := selectElement(perm)
 
-	for i := 0; i < 10; i++ {
+	for i := 0; i < 25000; i++ {
 		clone := childlessClone(child)
 		parent.Children = append(parent.Children, *clone)
 	}
@@ -134,18 +142,36 @@ func (s *deserializedXML) spamElementBreadthWise() {
  * The child is recursively added to itself creating a tree.
  * This tree is then added to the parent. 
  */
-func (s *deserializedXML) spamElementDepthWise() {
+func  spamElementDepthWise (s *deserializedXML) {
 	parent := selectElement(s)
 	child := selectElement(s)
 
 	var root *xmltree.Element
-	for i := 0; i < 10; i++ {
+	for i := 0; i < 25000; i++ {
 		root = childlessClone(child)
 		root.Children = append(root.Children, *child)
 		child = root
 	}
 
 	parent.Children = append(parent.Children, *root)
+}
+
+func (p *permXML) generateTestCase() {
+	ts := TestCase{}
+	ts.changes = append(ts.changes, p.currPerm.description...)
+	content := p.currPerm.marshal()
+	ts.input = content
+	p.toHarness <- ts
+	p.toMutator <- ts
+}
+
+func (perm *deserializedXML) addToDesc(change string) {
+	perm.description = append(perm.description, change)
+}
+
+/* Doesn't perform any permutation on the deserializedXML */
+func plainXML(perm *deserializedXML) {
+	perm.addToDesc("Original input")
 }
 
 /*
@@ -156,5 +182,20 @@ func (s *deserializedXML) spamElementDepthWise() {
 func (p *permXML) permutateInput(file string) {
 	for {
 		p.currPerm = newXML()
+		parseXML(file, p.currPerm)
+		plainXML(p.currPerm)
+		p.generateTestCase()
+
+		p.currPerm = newXML()
+		parseXML(file, p.currPerm)
+		p.currPerm.elemSet = getElemSet(p.currPerm.XMLTree)
+		spamElementBreadthWise(p.currPerm)
+		p.generateTestCase()
+
+		p.currPerm = newXML()
+		parseXML(file, p.currPerm)
+		p.currPerm.elemSet = getElemSet(p.currPerm.XMLTree)
+		spamElementDepthWise(p.currPerm)
+		p.generateTestCase()
 	}
 }
