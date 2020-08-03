@@ -125,10 +125,8 @@ func harness(id int, cmd string,
 		runtime.UnlockOSThread()
 		if isUniqueTrace(curExecTrace, uniqueTraces) {
 			uniqueTraces = append(uniqueTraces, curExecTrace)
-			// This channel is currently not used, leading to deadlock
-			// if given input here.
+			// If the channel is full, we ignore the interesting case
 			select {
-
 			case interestCases <- inputCase:
 			default:
 			}
