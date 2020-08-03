@@ -5,6 +5,7 @@ import (
 	"os"
 	"runtime"
 	"syscall"
+	"time"
 )
 
 /*
@@ -19,7 +20,18 @@ func traceSyscalls(pid int, ws *syscall.WaitStatus) execTrace {
 	var err error
 	var regs syscall.PtraceRegs
 	var curExecTrace execTrace
+
+	// Set up timeout condition for crude infinite loop detection.
+	tStart := time.Now()
+	tEnd := tStart.Add(30 * time.Millisecond)
+
 	for {
+		// Timeout condition.
+		tCur := time.Now()
+		if tCur.After(tEnd) {
+			return curExecTrace
+		}
+
 		err = syscall.PtraceSyscall(pid, 0)
 		if err != nil {
 			log.Fatal("traceSyscalls failed to call PtraceSyscall")
