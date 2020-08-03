@@ -152,6 +152,11 @@ func replaceN(s string, r *regexp.Regexp, n int, new string) string {
 
 	locations := r.FindAllStringIndex(s, -1)
 	result := ""
+
+	if (n >= len(locations)) {
+		n = 0
+	}
+
 	if n < len(locations) {
 		start := locations[n][0]
 		end := locations[n][1]
@@ -168,7 +173,7 @@ func replaceN(s string, r *regexp.Regexp, n int, new string) string {
 // step should be given as a positive, negative or zero number.
 // https://stackoverflow.com/questions/39868029/how-to-generate-a-sequence-of-numbers
 // seriously go doesnt have something like this ?
-func NewSlice(start, count, step int) []int {
+func newSlice(start, count, step int) []int {
 	s := make([]int, count)
 	for i := range s {
 		s[i] = start
@@ -188,7 +193,7 @@ func (m Mutator) mutateObj(ts *TestCase, r *regexp.Regexp, rplc func(int) string
 	o := (string(ts.input))
 	numbCandidates := len(r.FindAllStringIndex(o, -1))
 
-	c := NewSlice(0, numbCandidates, 1)
+	c := newSlice(0, numbCandidates, 1)
 
 	/* return an error if there are no candidates to mutate */
 	if len(c) == 0 {
@@ -198,12 +203,9 @@ func (m Mutator) mutateObj(ts *TestCase, r *regexp.Regexp, rplc func(int) string
 	/* shuffle the  candidate locations */
 	m.rng.Shuffle(len(c), func(i, j int) { c[i], c[j] = c[j], c[i] })
 
-	/* pick a random number of locations to change
-	 * add 1 to the random int generated so the numToChange is always
-	 * greater than 0. */
-	numToChange := m.rng.Intn(len(c)) + 1
+	/* pick a random number of locations to change */
+	numToChange := m.rng.Intn(len(c))
 	changeLocs := c[:numToChange]
-
 	for i, location := range changeLocs {
 		/* replace the string at index location with the
 		 * string returned from func rplc(i) */
@@ -221,21 +223,18 @@ func (m Mutator) mutateInts(ts *TestCase) error {
 	regexInteger := regexp.MustCompile(`-?\d+`)
 	result := m.mutateObj(ts, regexInteger, m.interestingInteger)
 	return result
-	//return m.mutateObj(ts, isAInt, m.interestingInteger)
 }
 
 func (m Mutator) mutateFloats(ts *TestCase) error {
-	regexFloat := regexp.MustCompile(`-?\d+.\d+`)
+	regexFloat := regexp.MustCompile(`-?\d+\.\d+`)
 	result := m.mutateObj(ts, regexFloat, m.interestingFloat)
 	return result
-	//return m.mutateObj(ts, isAFloat, m.interestingFloat)
 }
 
 func (m Mutator) mutateHex(ts *TestCase) error {
 	regexHex := regexp.MustCompile(`(0x)?-?[0-9A-Fa-f]+`)
 	result := m.mutateObj(ts, regexHex, m.interestingHex)
 	return result
-	//return m.mutateObj(ts, isAHex, m.interestingHex)
 }
 
 func (m Mutator) mutateShuffle(ts *TestCase) {
