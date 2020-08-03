@@ -127,7 +127,12 @@ func harness(id int, cmd string,
 			uniqueTraces = append(uniqueTraces, curExecTrace)
 			// This channel is currently not used, leading to deadlock
 			// if given input here.
-			//interestCases <- inputCase
+			select {
+
+				case interestCases <- inputCase:
+				default:
+			}
+
 		}
 
 		// Perform process cleanup on abort.

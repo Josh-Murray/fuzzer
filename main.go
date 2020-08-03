@@ -18,9 +18,9 @@ func main() {
 	}
 
 	// create channels for mutator and harness
-	inputToHarness := make(chan TestCase)
-	inputToMutator := make(chan TestCase)
-	harnessToInteresting := make(chan TestCase)
+	inputToHarness := make(chan TestCase, 1000)
+	inputToMutator := make(chan TestCase, 1000)
+	harnessToInteresting := make(chan TestCase, 1000)
 	crashCases := make(chan TestCase)
 
 	input, err := ioutil.ReadFile(os.Args[2])
@@ -34,6 +34,8 @@ func main() {
 	// create mutator threads
 	startMutators(inputToHarness, inputToMutator, input)
 
+	// create feedback thread
+	startFeedback(harnessToInteresting, inputToHarness)
 	// create harness threads
 	startHarnesses(os.Args[1], inputToHarness, harnessToInteresting, crashCases)
 
@@ -43,7 +45,7 @@ func main() {
 }
 
 func startMutators(outChan chan TestCase, inChan chan TestCase, input []byte) {
-	for i := 0; i < 4; i++ {
+	for i := 0; i < 3; i++ {
 		go func(i int) {
 			mutator := createMutator(outChan, inChan, input, int64(i))
 			for {
@@ -71,6 +73,11 @@ func startHarnesses(binary string, inChan chan TestCase,
 
 	}
 
+}
+
+func startFeedback(harnessToInteresting chan TestCase, inputToHarness chan TestCase){
+	mutator := createMutator(inputToHarness, harnessToInteresting, []byte{}, int64(0))
+	go mutator.feedbackLoop()
 }
 
 /*

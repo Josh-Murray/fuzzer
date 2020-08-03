@@ -301,6 +301,51 @@ func (m Mutator) interestingByte(ts *TestCase) {
 	ts.input[pos] = byte(val)
 }
 
+// Same logic as mutate, but blocks when not receiving input
+func (m Mutator) feedbackLoop(){
+	for ts := range m.inChan {
+		nMutations := m.rng.Intn(16)
+		for i := 0; i < nMutations; i++ {
+			selection := m.rng.Intn(10)
+			// TODO work out configurables, they might be needed here
+			switch selection {
+			case 0:
+				m.flipBits(&ts)
+			case 1:
+				m.flipBytes(&ts)
+			case 2:
+				m.deleteSlice(&ts)
+			case 3:
+				m.duplicateSlice(&ts)
+			case 4:
+				m.interestingByte(&ts)
+			case 5:
+				err := m.mutateInts(&ts)
+				if err != nil {
+					continue
+				}
+			case 6:
+				err := m.mutateFloats(&ts)
+				if err != nil {
+					continue
+				}
+			case 7:
+				err := m.mutateHex(&ts)
+				if err != nil {
+					continue
+				}
+			case 8:
+				m.mutateReverse(&ts)
+			case 9:
+				m.mutateShuffle(&ts)
+			default:
+				fmt.Printf("[WARN] mutator broken")
+				//dunno
+			}
+		}
+		m.outChan <- ts
+	}
+}
 /*
  * returns a TestCase received from the mutators inChan channel. If no
  * input was received from the channel, a new TestCase is created
