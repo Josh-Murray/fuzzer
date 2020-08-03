@@ -302,7 +302,7 @@ func (m Mutator) interestingByte(ts *TestCase) {
 }
 
 // Same logic as mutate, but blocks when not receiving input
-func (m Mutator) feedbackLoop(){
+func (m Mutator) feedbackLoop() {
 	for ts := range m.inChan {
 		nMutations := m.rng.Intn(16)
 		for i := 0; i < nMutations; i++ {
@@ -346,6 +346,7 @@ func (m Mutator) feedbackLoop(){
 		m.outChan <- ts
 	}
 }
+
 /*
  * returns a TestCase received from the mutators inChan channel. If no
  * input was received from the channel, a new TestCase is created

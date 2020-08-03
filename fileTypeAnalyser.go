@@ -1,12 +1,12 @@
 package main
 
 import (
+	"bytes"
 	"encoding/csv"
-	"encoding/xml"
 	"encoding/json"
+	"encoding/xml"
 	"io"
 	"log"
-	"bytes"
 )
 
 func check(e error) {
@@ -42,4 +42,3 @@ func isValidCSV(fileBytes []byte) bool {
 func isValidJSON(fileBytes []byte) bool {
 	return json.Valid(fileBytes)
 }
-

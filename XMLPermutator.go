@@ -1,41 +1,40 @@
 package main
 
 import (
-	"os"
 	"aqwari.net/xml/xmltree"
 	"fmt"
-	"log"
 	"io/ioutil"
+	"log"
 	"math/rand"
+	"os"
 )
 
 /*
- * elemSet is a slice of pointers to all unique elements in the tree, 
- * allowing an element to be randomly selected in O(1) time. 
- * XMLTree is the root element.  
+ * elemSet is a slice of pointers to all unique elements in the tree,
+ * allowing an element to be randomly selected in O(1) time.
+ * XMLTree is the root element.
  */
 type deserializedXML struct {
-	XMLTree	*xmltree.Element
-	elemSet []*xmltree.Element
+	XMLTree     *xmltree.Element
+	elemSet     []*xmltree.Element
 	description []string
 }
 
-
 /*
- * permXML represents an XML permutator. 
+ * permXML represents an XML permutator.
  * permXML contains two channels, toHarness and toMutator that it sends
- * TestCases to. 
+ * TestCases to.
  * currPerm represents the current permutation the permutator is working on
  */
 type permXML struct {
 	toHarness chan TestCase
 	toMutator chan TestCase
-	rng *rand.Rand
-	currPerm *deserializedXML
+	rng       *rand.Rand
+	currPerm  *deserializedXML
 }
 
 /*
- * creates a new deserializedXML struct. 
+ * creates a new deserializedXML struct.
  * Initialises the XMLTree field with parseXML.
  * Initializes the elemSet field with getElemSet.
  */
@@ -50,7 +49,7 @@ func newXML(file string) *deserializedXML {
  * converts the permutation into a byte slice representing the
  * XML content
  */
-func (perm *deserializedXML) marshal () []byte {
+func (perm *deserializedXML) marshal() []byte {
 	return xmltree.Marshal(perm.XMLTree)
 }
 
@@ -63,9 +62,8 @@ func newXMLPermutator(harnessChan chan TestCase, mutatorChan chan TestCase, seed
 	return p
 }
 
-
 /*
- * Reads the XML specified by file into a deserializedXML struct. 
+ * Reads the XML specified by file into a deserializedXML struct.
  */
 func parseXML(file string, s *deserializedXML) {
 	xmlFile, err := os.Open(file)
@@ -112,7 +110,7 @@ func (p *permXML) selectElement() *xmltree.Element {
 
 /*
  * Creates a new Element which contains the same StartElement and
- * and Content as the element e. The new Element has no children. 
+ * and Content as the element e. The new Element has no children.
  */
 func childlessClone(e *xmltree.Element) *xmltree.Element {
 	clone := new(xmltree.Element)
@@ -126,9 +124,9 @@ func childlessClone(e *xmltree.Element) *xmltree.Element {
 
 /*
  * Two elements are randomly selected. One acts as the parent, the
- * Other acts as the child. 
- * Multiple childless copies of the child 
- * are added to the parent. 
+ * Other acts as the child.
+ * Multiple childless copies of the child
+ * are added to the parent.
  */
 func spamElementBreadthWise(p *permXML) {
 
@@ -145,12 +143,12 @@ func spamElementBreadthWise(p *permXML) {
 }
 
 /*
- * Two elements are randomly selected. One acts as the parent, the 
+ * Two elements are randomly selected. One acts as the parent, the
  * other acts as the child
  * The child is recursively added to itself creating a tree.
- * This tree is then added to the parent. 
+ * This tree is then added to the parent.
  */
-func spamElementDepthWise (p *permXML) {
+func spamElementDepthWise(p *permXML) {
 
 	parent := p.selectElement()
 	child := p.selectElement()

@@ -129,8 +129,8 @@ func harness(id int, cmd string,
 			// if given input here.
 			select {
 
-				case interestCases <- inputCase:
-				default:
+			case interestCases <- inputCase:
+			default:
 			}
 
 		}

@@ -75,7 +75,7 @@ func startHarnesses(binary string, inChan chan TestCase,
 
 }
 
-func startFeedback(harnessToInteresting chan TestCase, inputToHarness chan TestCase){
+func startFeedback(harnessToInteresting chan TestCase, inputToHarness chan TestCase) {
 	mutator := createMutator(inputToHarness, harnessToInteresting, []byte{}, int64(0))
 	go mutator.feedbackLoop()
 }
