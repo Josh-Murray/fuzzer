@@ -100,6 +100,12 @@ func (m Mutator) interestingInteger(i int) string {
 	return candidates[m.rng.Intn(len(candidates))]
 }
 
+func (m Mutator) interestingString(i int) string {
+	longString := "\"" + strings.Repeat("a", 1024) + "\""
+	candidates := []string{"\"%s%s%s%s%s\"", "\"%n%n%n%n%n\"", longString}
+	return candidates[m.rng.Intn(len(candidates))]
+}
+
 func isAFloat(w string) bool {
 
 	_, err := strconv.ParseFloat(w, 1)
@@ -234,6 +240,12 @@ func (m Mutator) mutateFloats(ts *TestCase) error {
 func (m Mutator) mutateHex(ts *TestCase) error {
 	regexHex := regexp.MustCompile(`(0x)?-?[0-9A-Fa-f]+`)
 	result := m.mutateObj(ts, regexHex, m.interestingHex)
+	return result
+}
+
+func (m Mutator) mutateStrings(ts *TestCase) error {
+	regexString := regexp.MustCompile(`\".*\"`)
+	result := m.mutateObj(ts, regexString, m.interestingString)
 	return result
 }
 
@@ -373,7 +385,7 @@ func (m Mutator) getTestCase() TestCase {
 func (m Mutator) mutateTestCase(ts TestCase) {
 	nMutations := m.rng.Intn(16)
 	for i := 0; i < nMutations; i++ {
-		selection := m.rng.Intn(10)
+		selection := m.rng.Intn(11)
 		// TODO work out configurables, they might be needed here
 		switch selection {
 		case 0:
@@ -405,6 +417,11 @@ func (m Mutator) mutateTestCase(ts TestCase) {
 			m.mutateReverse(&ts)
 		case 9:
 			m.mutateShuffle(&ts)
+		case 10:
+			err := m.mutateStrings(&ts)
+			if err != nil {
+				continue
+			}
 		default:
 			fmt.Printf("[WARN] mutator broken")
 			//dunno
