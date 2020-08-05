@@ -57,7 +57,7 @@ func setupSnapshotState(pid int, ws *syscall.WaitStatus, is64bit bool) error {
 
 		_, err = syscall.Wait4(pid, ws, syscall.WALL, nil)
 		if err != nil {
-			return fmt.Errorf("Failed to set up snapshot state (Wait4): %s"+
+			return fmt.Errorf("Failed to set up snapshot state (Wait4): "+
 				"%s\n", err.Error())
 
 		}
@@ -153,7 +153,7 @@ func makeSnapshot(pid int) (Snapshot, error) {
 			if err != nil {
 				return procSnapshot,
 					fmt.Errorf("Failed to read memory segment "+
-						"in makeSnapshot: %s", err.Error)
+						"in makeSnapshot: %s", err.Error())
 			}
 
 			m := MemoryRegion{
@@ -177,7 +177,7 @@ func makeSnapshot(pid int) (Snapshot, error) {
 	if err != nil {
 		return procSnapshot,
 			fmt.Errorf("Failed to get register set i makeSnapshot: %s",
-				err.Error)
+				err.Error())
 	}
 
 	procSnapshot = Snapshot{
