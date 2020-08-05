@@ -2,6 +2,7 @@ package main
 
 import (
 	"debug/elf"
+	"fmt"
 	"log"
 	"os"
 	"runtime"
@@ -18,7 +19,7 @@ import (
  * Also requires an argument identifying if target binary is an 64bit ELF
  * Returns an execTrace struct identifying the execution run.
  */
-func traceSyscalls(pid int, ws *syscall.WaitStatus, is64bit bool) execTrace {
+func traceSyscalls(pid int, ws *syscall.WaitStatus, is64bit bool) (execTrace, error) {
 	var err error
 	var regs syscall.PtraceRegs
 	var curExecTrace execTrace
@@ -31,30 +32,36 @@ func traceSyscalls(pid int, ws *syscall.WaitStatus, is64bit bool) execTrace {
 		// Timeout condition.
 		tCur := time.Now()
 		if tCur.After(tEnd) {
-			return curExecTrace
+			return curExecTrace, nil
 		}
 
 		err = syscall.PtraceSyscall(pid, 0)
 		if err != nil {
-			log.Fatal("traceSyscalls failed to call PtraceSyscall")
+			return curExecTrace,
+				fmt.Errorf("traceSyscalls failed to call PtraceSyscall: %s",
+					err.Error())
 		}
 
 		_, err = syscall.Wait4(pid, ws, syscall.WALL, nil)
 		if err != nil {
-			log.Fatal("traceSyscalls failed to call Wait4")
+			return curExecTrace,
+				fmt.Errorf("traceSyscalls failed to call Wait4: %s",
+					err.Error())
 		}
 
 		// Return on program exit, crash or abort.
 		if ws.Exited() == true ||
 			ws.StopSignal() == syscall.SIGSEGV ||
 			ws.StopSignal() == syscall.SIGABRT {
-			return curExecTrace
+			return curExecTrace, nil
 		}
 
 		// Collect trace information.
 		err = syscall.PtraceGetRegs(pid, &regs)
 		if err != nil {
-			log.Fatal("traceSyscalls failed to call PtraceGetRegs")
+			return curExecTrace,
+				fmt.Errorf("traceSyscalls failed to call PtraceGetRegs: %s",
+					err.Error())
 		}
 
 		traceRegs := getInterestingRegs(&regs)
@@ -64,14 +71,31 @@ func traceSyscalls(pid int, ws *syscall.WaitStatus, is64bit bool) execTrace {
 		// These sycall numbers depend on architecture.
 		if is64bit {
 			if regs.Orig_rax == 0x3c || regs.Orig_rax == 0xe7 {
-				return curExecTrace
+				return curExecTrace, nil
 			}
 		} else {
 			if regs.Orig_rax == 0x1 || regs.Orig_rax == 0xfc {
-				return curExecTrace
+				return curExecTrace, nil
 			}
 		}
 	}
+}
+
+/*
+ * Runs a new harness instance as a new goroutine.
+ * Should be called by a harness routine attempting to 'try again'
+ * after hitting an error.
+ * The calling harness is responsible for cleaning up resources and returning
+ * after calling this function.
+ */
+func resetHarness(id int, cmd string,
+	inputCases <-chan TestCase,
+	interestCases chan<- TestCase,
+	crashCases chan<- TestCase) {
+
+	log.Printf("Harness %d encountered an error, resetting\n",
+		id)
+	go harness(id, cmd, inputCases, interestCases, crashCases)
 }
 
 /*
@@ -108,10 +132,13 @@ func harness(id int, cmd string,
 	// entry in /proc/pid/fd/, but otherwise is unused.
 	procPipe, harnessPipe, err := os.Pipe()
 	if err != nil {
-		log.Fatalf("Harness with id %d failed to create pipe: %s\n",
+		log.Printf("Harness with id %d failed to create pipe: %s\n",
 			id, err.Error())
+		resetHarness(id, cmd, inputCases, interestCases, crashCases)
+		return
 	}
 	harnessPipe.Close()
+	defer procPipe.Close()
 	pAttr.Files = make([]uintptr, 1)
 	pAttr.Files[0] = procPipe.Fd()
 
@@ -121,31 +148,60 @@ func harness(id int, cmd string,
 
 	procPid, err := syscall.ForkExec(cmd, nil, &pAttr)
 	if err != nil {
-		log.Fatalf("Harness with id %d failed to start program: %s\n",
+		log.Printf("Harness with id %d failed to start program: %s\n",
 			id, err.Error())
+		resetHarness(id, cmd, inputCases, interestCases, crashCases)
+		return
 	}
 
 	// Child process recieves signal on startup due to ptrace.
 	var ws syscall.WaitStatus
 	_, err = syscall.Wait4(procPid, &ws, syscall.WALL, nil)
 	if err != nil {
-		log.Fatalf("Harness with id %d failed to wait for tracee: %s\n",
+		log.Printf("Harness with id %d failed to wait for tracee: %s\n",
 			id, err.Error())
+		resetHarness(id, cmd, inputCases, interestCases, crashCases)
+		return
 	}
 
 	// Run process until it's in a suitable state for snapshotting.
-	setupSnapshotState(procPid, &ws, is64bit)
+	err = setupSnapshotState(procPid, &ws, is64bit)
+	if err != nil {
+		log.Printf("Harness with id %d failed to set up snapshot state: %s\n",
+			id, err.Error())
+		resetHarness(id, cmd, inputCases, interestCases, crashCases)
+		return
+	}
 
 	// Save process state for future restorations.
 	var procSnapshot Snapshot
-	procSnapshot = makeSnapshot(procPid)
+	procSnapshot, err = makeSnapshot(procPid)
+	if err != nil {
+		log.Printf("Harness with id %d failed to take a snapshot: %s\n",
+			id, err.Error())
+		resetHarness(id, cmd, inputCases, interestCases, crashCases)
+		return
+
+	}
 
 	for inputCase := range inputCases {
 
-		writeToProc(procPid, inputCase.input)
+		err = writeToProc(procPid, inputCase.input)
+		if err != nil {
+			log.Printf("Harness with id %d failed to write to process:"+
+				"%s\n", id, err.Error())
+			resetHarness(id, cmd, inputCases, interestCases, crashCases)
+			return
+		}
 
 		// Trace execution and report back interesting cases.
-		curExecTrace := traceSyscalls(procPid, &ws, is64bit)
+		curExecTrace, err := traceSyscalls(procPid, &ws, is64bit)
+		if err != nil {
+			log.Printf("Harness with id %d failed to trace process:"+
+				"%s\n", id, err.Error())
+			resetHarness(id, cmd, inputCases, interestCases, crashCases)
+			return
+		}
 		if isUniqueTrace(curExecTrace, uniqueTraces) {
 			uniqueTraces = append(uniqueTraces, curExecTrace)
 			// If the channel is full, we ignore the interesting case

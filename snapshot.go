@@ -43,35 +43,37 @@ type Snapshot struct {
  * for memory snapshotting. The wait status ws is updated along the way.
  * This will run the binary until the first read syscall from fd 0 (stdin)
  */
-func setupSnapshotState(pid int, ws *syscall.WaitStatus, is64bit bool) {
+func setupSnapshotState(pid int, ws *syscall.WaitStatus, is64bit bool) error {
 	var err error
 	var regs syscall.PtraceRegs
 	for {
 		// Trace every instruction with ptrace until desired state.
 		err = syscall.PtraceSyscall(pid, 0)
 		if err != nil {
-			log.Fatalf("Failed to set up snapshot state (PtraceSingleStep):"+
-				"%s\n", err.Error())
+			return fmt.Errorf("Failed to set up snapshot state (PtraceSingleStep):"+
+				"%s", err.Error())
+
 		}
 
 		_, err = syscall.Wait4(pid, ws, syscall.WALL, nil)
 		if err != nil {
-			log.Fatalf("Failed to set up snapshot state (Wait4): %s\n",
-				err.Error())
+			return fmt.Errorf("Failed to set up snapshot state (Wait4): %s"+
+				"%s\n", err.Error())
+
 		}
 
 		// If any sort of exit, something has gone wrong.
 		if ws.Exited() == true ||
 			ws.StopSignal() == syscall.SIGSEGV ||
 			ws.StopSignal() == syscall.SIGABRT {
-			log.Fatalf("Exit during snapshot set up: %v\n",
+			return fmt.Errorf("Exit during snapshot set up: %v",
 				ws.StopSignal())
 		}
 
 		err = syscall.PtraceGetRegs(pid, &regs)
 		if err != nil {
-			log.Fatalf("Failed to set up snapshot state (PtraceGetRegs):"+
-				"%s\n", err.Error())
+			return fmt.Errorf("Failed to set up snapshot state (PtraceGetRegs:)"+
+				"%s", err.Error())
 
 		}
 
@@ -80,11 +82,11 @@ func setupSnapshotState(pid int, ws *syscall.WaitStatus, is64bit bool) {
 		// This is the exit condition for the snapshot set up.
 		if is64bit {
 			if regs.Orig_rax == 0x0 && regs.Rdi == 0x0 {
-				return
+				return nil
 			}
 		} else {
 			if regs.Orig_rax == 0x3 && regs.Rbx == 0x0 {
-				return
+				return nil
 			}
 		}
 
@@ -95,9 +97,9 @@ func setupSnapshotState(pid int, ws *syscall.WaitStatus, is64bit bool) {
  * Saves the state of the current process specified by pid into a
  * Snapshot struct, and returns the struct.
  */
-func makeSnapshot(pid int) Snapshot {
+func makeSnapshot(pid int) (Snapshot, error) {
 	var err error
-
+	var procSnapshot Snapshot
 	// The proc filesystem is used to make the snapshot of process
 	// memory segments. See PROC(5) for more details.
 	path := "/proc/" + strconv.Itoa(pid)
@@ -107,14 +109,19 @@ func makeSnapshot(pid int) Snapshot {
 	if err != nil {
 		log.Fatalf("makeSnapshot failed to open /proc/%d/maps: %s\n",
 			pid, err.Error())
+		return procSnapshot,
+			fmt.Errorf("makeSnapshot failed to open /proc/%d/maps: %s",
+				pid, err.Error())
+
 	}
 	defer mapFile.Close()
 
 	// /proc/pid/mem gives access to process memory.
 	memFile, err := os.Open(path + "/mem")
 	if err != nil {
-		log.Fatalf("makeSnapshot failed to open /proc/%d/maps: %s\n",
-			pid, err.Error())
+		return procSnapshot,
+			fmt.Errorf("makeSnapshot failed to open /proc/%d/maps: %s",
+				pid, err.Error())
 	}
 	defer memFile.Close()
 
@@ -132,8 +139,9 @@ func makeSnapshot(pid int) Snapshot {
 		// the start and ending addresses, and the segment permissions.
 		_, err = fmt.Sscanf(line, "%x-%x %5s", &addrStart, &addrEnd, &perm)
 		if err != nil {
-			log.Fatalf("Sscanf failed in makeSnapshot: %s\n",
-				err.Error())
+			return procSnapshot,
+				fmt.Errorf("Sscanf failed in makeSnapshot: %s",
+					err.Error())
 		}
 
 		// Only copy writable memory segments.
@@ -143,8 +151,9 @@ func makeSnapshot(pid int) Snapshot {
 
 			_, err = memFile.ReadAt(mData, int64(addrStart))
 			if err != nil {
-				log.Fatal("Failed to read memory segment in makeSnapshot:"+
-					"%s\n", err.Error())
+				return procSnapshot,
+					fmt.Errorf("Failed to read memory segment "+
+						"in makeSnapshot: %s", err.Error)
 			}
 
 			m := MemoryRegion{
@@ -158,37 +167,38 @@ func makeSnapshot(pid int) Snapshot {
 
 	err = scanner.Err()
 	if err != nil {
-		log.Fatalf("Scanner failed in makeSnapshot: %s\n",
-			err.Error())
+		return procSnapshot,
+			fmt.Errorf("Scanner failed in makeSnapshot: %s", err.Error())
 	}
 
 	// Save the register set.
 	var regs syscall.PtraceRegs
 	err = syscall.PtraceGetRegs(pid, &regs)
 	if err != nil {
-		log.Fatalf("Failed to get register set in makeSnapshot: %s\n",
-			err.Error())
+		return procSnapshot,
+			fmt.Errorf("Failed to get register set i makeSnapshot: %s",
+				err.Error)
 	}
 
-	procSnapshot := Snapshot{
+	procSnapshot = Snapshot{
 		pid:       pid,
 		savedRegs: regs,
 		segments:  mRegions,
 	}
-	return procSnapshot
+	return procSnapshot, nil
 }
 
 /*
  * Restores the state of the process identified by the given Snapshot struct.
  */
-func restoreSnapshot(procSnapshot Snapshot) {
+func restoreSnapshot(procSnapshot Snapshot) error {
 	var err error
 
 	// /proc/pid/mem is used to restore process memory segments.
 	path := "/proc/" + strconv.Itoa(procSnapshot.pid) + "/mem"
 	memFile, err := os.OpenFile(path, os.O_WRONLY, 0644)
 	if err != nil {
-		log.Fatalf("restoreSnapshot failed to open /proc/%d/mem: %s\n",
+		return fmt.Errorf("restoreSnapshot failed to open /proc/%d/mem: %s",
 			procSnapshot.pid, err.Error())
 	}
 
@@ -197,7 +207,7 @@ func restoreSnapshot(procSnapshot Snapshot) {
 		_, err = memFile.WriteAt(mRegion.data,
 			int64(mRegion.startAddr))
 		if err != nil {
-			log.Fatalf("restoreSnapshot failed to restore segment: %s\n",
+			return fmt.Errorf("restoreSnapshot failed to restore segment: %s",
 				err.Error())
 		}
 	}
@@ -205,23 +215,25 @@ func restoreSnapshot(procSnapshot Snapshot) {
 	// Restore saved register set.
 	err = syscall.PtraceSetRegs(procSnapshot.pid, &procSnapshot.savedRegs)
 	if err != nil {
-		log.Fatalf("restoreSnapshot failed to restore regs: %s\n",
+		return fmt.Errorf("restoreSnapshot failed to restore regs: %s",
 			err.Error())
 	}
+
+	return nil
 }
 
 /*
  * Writes the provided input to the target process's stdin, specified by pid.
  * Uses the /proc filesystem to do so, writing to /proc/pid/fd/0
  */
-func writeToProc(pid int, input []byte) {
+func writeToProc(pid int, input []byte) error {
 	var err error
 	path := "/proc/" + strconv.Itoa(pid) + "/fd/0"
 
 	stdinFile, err := syscall.Open(path, syscall.O_WRONLY|syscall.O_CLOEXEC|
 		syscall.O_NONBLOCK|syscall.O_SYNC, 0644)
 	if err != nil {
-		log.Fatalf("writeToProc failed to open process stdin: %s\n",
+		return fmt.Errorf("writeToProc failed to open process stdin: %s",
 			err.Error())
 	}
 	defer syscall.Close(stdinFile)
@@ -229,7 +241,8 @@ func writeToProc(pid int, input []byte) {
 	_, err = syscall.Write(stdinFile, input)
 	// Continue as normal on EAGAIN error.
 	if err != nil && err != syscall.EAGAIN {
-		log.Fatalf("writeToProc failed to write to output: %s\n",
+		return fmt.Errorf("writeToProc failed to write to output: %s",
 			err.Error())
 	}
+	return nil
 }
