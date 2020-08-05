@@ -243,7 +243,6 @@ func (i *parsedJSON) generateTestCase() {
 	ts := TestCase{}
 	content := i.json.flatten()
 	ts.input = append(ts.input, content...)
-	log.Println(string(ts.input))
 	i.toMutator <- ts
 	i.toHarness <- ts
 }
