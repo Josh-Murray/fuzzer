@@ -49,10 +49,11 @@ func traceSyscalls(pid int, ws *syscall.WaitStatus, is64bit bool) (execTrace, er
 					err.Error())
 		}
 
-		// Return on program exit, crash or abort.
+		// Return on program exit, crash, abort or arithmetic error.
 		if ws.Exited() == true ||
 			ws.StopSignal() == syscall.SIGSEGV ||
-			ws.StopSignal() == syscall.SIGABRT {
+			ws.StopSignal() == syscall.SIGABRT ||
+			ws.StopSignal() == syscall.SIGFPE {
 			return curExecTrace, nil
 		}
 
@@ -218,8 +219,10 @@ func harness(id int, cmd string,
 			aborted = true
 		}
 
-		// Report segfaults and ignore other exit causes.
-		if ws.StopSignal() == syscall.SIGSEGV && aborted == false {
+		// Report segfaults/arithmetic errors and ignore other exit causes.
+		if (ws.StopSignal() == syscall.SIGSEGV ||
+			ws.StopSignal() == syscall.SIGFPE) &&
+			aborted == false {
 			log.Printf("Harness with id %d crashed process with pid %d\n",
 				id, procPid)
 			crashCases <- inputCase
