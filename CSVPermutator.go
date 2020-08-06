@@ -294,7 +294,7 @@ func spamRows(copies bool, perm *deserializedCSV) {
 	}
 
 	//TODO: abstract magic numbers
-	for i := 1; i < 4096; i++ {
+	for i := 1; i < 128; i++ {
 		lastRow := perm.rows - 1
 		if copies {
 			copyRow(lastRow, perm)
@@ -317,7 +317,7 @@ func spamCols(copies bool, perm *deserializedCSV) {
 	}
 
 	//TODO: abstract magic numbers
-	for i := 1; i < 4096; i++ {
+	for i := 1; i < 128; i++ {
 		lastColumn := perm.columns - 1
 		if copies {
 			copyCol(lastColumn, perm)

@@ -383,9 +383,9 @@ func (m Mutator) getTestCase() TestCase {
 
 }
 func (m Mutator) mutateTestCase(ts TestCase) {
-	nMutations := m.rng.Intn(16)
+	nMutations := m.rng.Intn(8) + 1
 	for i := 0; i < nMutations; i++ {
-		selection := m.rng.Intn(11)
+		selection := m.rng.Intn(8)
 		// TODO work out configurables, they might be needed here
 		switch selection {
 		case 0:
@@ -393,31 +393,25 @@ func (m Mutator) mutateTestCase(ts TestCase) {
 		case 1:
 			m.flipBytes(&ts)
 		case 2:
-			m.deleteSlice(&ts)
-		case 3:
-			m.duplicateSlice(&ts)
-		case 4:
-			m.interestingByte(&ts)
-		case 5:
 			err := m.mutateInts(&ts)
 			if err != nil {
 				continue
 			}
-		case 6:
+		case 3:
 			err := m.mutateFloats(&ts)
 			if err != nil {
 				continue
 			}
-		case 7:
+		case 4:
 			err := m.mutateHex(&ts)
 			if err != nil {
 				continue
 			}
-		case 8:
+		case 5:
 			m.mutateReverse(&ts)
-		case 9:
+		case 6:
 			m.mutateShuffle(&ts)
-		case 10:
+		case 7:
 			err := m.mutateStrings(&ts)
 			if err != nil {
 				continue
@@ -427,7 +421,6 @@ func (m Mutator) mutateTestCase(ts TestCase) {
 			//dunno
 		}
 	}
-
 	m.outChan <- ts
 
 }
