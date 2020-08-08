@@ -133,7 +133,7 @@ func spamElementBreadthWise(p *permXML) {
 	parent := p.selectElement()
 	child := p.selectElement()
 
-	for i := 0; i < p.rng.Intn(128) + 1;  i++ {
+	for i := 0; i < p.rng.Intn(128)+1; i++ {
 		clone := childlessClone(child)
 		parent.Children = append(parent.Children, *clone)
 	}
@@ -155,7 +155,7 @@ func spamElementDepthWise(p *permXML) {
 
 	var root *xmltree.Element
 
-	for i := 0; i < p.rng.Intn(128) + 1; i++ {
+	for i := 0; i < p.rng.Intn(128)+1; i++ {
 		root = childlessClone(child)
 		root.Children = append(root.Children, *child)
 		child = root
@@ -194,33 +194,33 @@ func (p *permXML) permutateInput(file string) {
 	for {
 		p.currPerm = newXML(file)
 		numPermutes := p.rng.Intn(8) + 1
-		for i := 0; i < numPermutes; i ++{
+		for i := 0; i < numPermutes; i++ {
 			selection := p.rng.Intn(3)
 			switch selection {
-				case 0:
-					plainXML(p.currPerm)
-				case 1:
-					spamElementDepthWise(p)
-				case 2:
-					spamElementBreadthWise(p)
-				default:
+			case 0:
+				plainXML(p.currPerm)
+			case 1:
+				spamElementDepthWise(p)
+			case 2:
+				spamElementBreadthWise(p)
+			default:
 
 			}
 
 		}
 		p.generateTestCase()
 		/*
-		p.currPerm = newXML(file)
-		plainXML(p.currPerm)
-		p.generateTestCase()
+			p.currPerm = newXML(file)
+			plainXML(p.currPerm)
+			p.generateTestCase()
 
-		//p.currPerm = newXML(file)
-		spamElementBreadthWise(p)
-		p.generateTestCase()
+			//p.currPerm = newXML(file)
+			spamElementBreadthWise(p)
+			p.generateTestCase()
 
-		//p.currPerm = newXML(file)
-		spamElementDepthWise(p)
-		p.generateTestCase()
+			//p.currPerm = newXML(file)
+			spamElementDepthWise(p)
+			p.generateTestCase()
 		*/
 	}
 }

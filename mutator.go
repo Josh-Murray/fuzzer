@@ -96,7 +96,7 @@ func replaceN(s string, r *regexp.Regexp, n int, new string) string {
 	locations := r.FindAllStringIndex(s, -1)
 	result := ""
 
-	if (n >= len(locations)) {
+	if n >= len(locations) {
 		n = 0
 	}
 
@@ -180,10 +180,10 @@ func (m Mutator) mutateHex(ts *TestCase) error {
 	return result
 }
 
-/* Selects a string, insert, 
+/* Selects a string, insert,
  * from interestingString and an arbitrary location
- * to insert the string into the testCase's input. 
- * The string is inserted at this arbritrary location. 
+ * to insert the string into the testCase's input.
+ * The string is inserted at this arbritrary location.
  */
 func (m Mutator) insertString(ts *TestCase) {
 	insert := []byte(m.interestingString())
@@ -196,7 +196,7 @@ func (m Mutator) insertString(ts *TestCase) {
 		ts.input = append(ts.input, insert...)
 	} else {
 		// add insert to the middle of ts.input
-		head := ts.input[:where - 1]
+		head := ts.input[:where-1]
 		tail := ts.input[where:]
 		ts.input = append(head, insert...)
 		ts.input = append(ts.input, tail...)

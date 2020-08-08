@@ -155,22 +155,22 @@ func (j *jsonCase) spam(r *rand.Rand) {
 	}
 	// this is not a deep copy
 	for i := 0; i < r.Intn(15)+3; i++ {
-		if i % 3 == 0 {
+		if i%3 == 0 {
 			parent := &jsonObject{key: "key1"}
 			child1 := &jsonArray{key: "key2"}
 			child2 := j.jsonObj[r.Intn(len(j.jsonObj))]
 			child3 := &jsonArray{key: "key3"}
 			for k := 0; k < 5; k++ {
 				t := j.jsonObj[r.Intn(len(j.jsonObj))]
-				child1.values = append(child1.values,t)
+				child1.values = append(child1.values, t)
 				t = j.jsonObj[r.Intn(len(j.jsonObj))]
-				child3.values = append(child3.values,t)
+				child3.values = append(child3.values, t)
 			}
 			parent.values = append(parent.values, child1)
 			parent.values = append(parent.values, child2)
 			parent.values = append(parent.values, child3)
 			j.jsonObj = append(j.jsonObj, parent)
-		}else{
+		} else {
 			t := j.jsonObj[r.Intn(len(j.jsonObj))]
 			t.spam(r)
 			j.jsonObj = append(j.jsonObj, t)
