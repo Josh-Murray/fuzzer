@@ -101,8 +101,8 @@ func (m Mutator) interestingInteger(i int) string {
 }
 
 func (m Mutator) interestingString(i int) string {
-	longString := "\"" + strings.Repeat("a", 1024) + "\""
-	candidates := []string{"\"%s%s%s%s%s\"", "\"%n%n%n%n%n\"", longString}
+	longString := strings.Repeat("a", 1024)
+	candidates := []string{"%s%s%s%s%s", "%n%n%n%n%n", longString}
 	return candidates[m.rng.Intn(len(candidates))]
 }
 
@@ -243,10 +243,24 @@ func (m Mutator) mutateHex(ts *TestCase) error {
 	return result
 }
 
-func (m Mutator) mutateStrings(ts *TestCase) error {
-	regexString := regexp.MustCompile(`\".*\"`)
-	result := m.mutateObj(ts, regexString, m.interestingString)
-	return result
+func (m Mutator) insertString(ts *TestCase) {
+	insert := []byte(m.interestingString(0))
+	where := m.rng.Intn(len(ts.input) + 1)
+	if where == 0 {
+		// prepend insert to the start of ts.input
+		ts.input = append(insert, ts.input...)
+	} else if where == len(ts.input) {
+		// append insert to the end of ts.input
+		ts.input = append(ts.input, insert...)
+	} else {
+		// add insert to the middle of ts.input
+		head := ts.input[:where - 1]
+		tail := ts.input[where:]
+		ts.input = append(head, insert...)
+		ts.input = append(ts.input, tail...)
+	}
+
+	return
 }
 
 func (m Mutator) mutateShuffle(ts *TestCase) {
@@ -412,10 +426,7 @@ func (m Mutator) mutateTestCase(ts TestCase) {
 		case 6:
 			m.mutateShuffle(&ts)
 		case 7:
-			err := m.mutateStrings(&ts)
-			if err != nil {
-				continue
-			}
+			m.insertString(&ts)
 		default:
 			fmt.Printf("[WARN] mutator broken")
 			//dunno
