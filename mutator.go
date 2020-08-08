@@ -6,7 +6,6 @@ import (
 	"math"
 	"math/rand"
 	"regexp"
-	"strconv"
 	"strings"
 )
 
@@ -70,86 +69,24 @@ func compose(o []string) string {
 	return strings.Join(o, "")
 }
 
-/*
- * takes in a slice of strings o and identifies whether or not
- * each string in the slice can be parsed by the function s
- * (isAFloat, isAInt, isAHex).
- * returns a slice of indexes corresponding to the strings in o
- * which can successfully be parsed by the function s
- */
-func identifyCandidates(o []string, s func(string) bool) []int {
-	var candidates []int
-	for i, obj := range o {
-		if s(obj) {
-			candidates = append(candidates, i)
-		}
-	}
-	return candidates
-}
-
-func isAInt(o string) bool {
-	if _, err := strconv.Atoi(o); err == nil {
-		return true
-	}
-
-	return false
-}
-
-func (m Mutator) interestingInteger(i int) string {
+func (m Mutator) interestingInteger() string {
 	candidates := []string{"0", "-1", "-100", "100", "4294967295", "-4294967295"}
 	return candidates[m.rng.Intn(len(candidates))]
 }
 
-func (m Mutator) interestingString(i int) string {
+func (m Mutator) interestingString() string {
 	longString := strings.Repeat("a", 1024)
 	candidates := []string{"%s%s%s%s%s", "%n%n%n%n%n", longString}
 	return candidates[m.rng.Intn(len(candidates))]
 }
 
-func isAFloat(w string) bool {
-
-	_, err := strconv.ParseFloat(w, 1)
-
-	if !isAInt(w) && err == nil {
-		return true
-	}
-	return false
-}
-
-func (m Mutator) interestingFloat(n int) string {
+func (m Mutator) interestingFloat() string {
 	candidates := []float32{0, -0, 1, -1, float32(math.Inf(1)), float32(math.Inf(1)), float32(math.NaN())}
 	result := candidates[m.rng.Intn(len(candidates))]
 	return fmt.Sprintf("%v", result)
 }
 
-/*
- * Determines whether or not a string is can be parsed as a number in
- * hex format. ParseInt accepts strings in 0x format however ParseFloat
- * does not.
- * If ParseInt does not throw an error but ParseFloat does, then
- * the string is a number in hex format.
- */
-func isAHex(w string) bool {
-	/* check if string starts with 0x or 0X, return if it doesn't */
-	m, err := regexp.MatchString(`(m?)^0[xX]`, w)
-	if err != nil || m == false {
-		return false
-	}
-
-	_, err = strconv.ParseInt(w, 0, 64)
-	if err != nil {
-		return false
-	}
-
-	_, err = strconv.ParseFloat(w, 1)
-	if err == nil {
-		return false
-	}
-
-	return true
-}
-
-func (m Mutator) interestingHex(i int) string {
+func (m Mutator) interestingHex() string {
 	candidates := []string{"0", "0x", "0x00000000", "0x0000000", "0xFFFFFFFF", "0x80000000", "0xdeadbeef", "01234567", "0xDEADBEEF", "0x0000000G"}
 	return candidates[m.rng.Intn(len(candidates))]
 }
@@ -195,7 +132,7 @@ func newSlice(start, count, step int) []int {
  * rplc on. The function rplc returns a string with which to replace some
  * value in the decomposed TestCase input 'o'.
  */
-func (m Mutator) mutateObj(ts *TestCase, r *regexp.Regexp, rplc func(int) string) error {
+func (m Mutator) mutateObj(ts *TestCase, r *regexp.Regexp, rplc func() string) error {
 	o := (string(ts.input))
 	numbCandidates := len(r.FindAllStringIndex(o, -1))
 
@@ -212,10 +149,10 @@ func (m Mutator) mutateObj(ts *TestCase, r *regexp.Regexp, rplc func(int) string
 	/* pick a random number of locations to change */
 	numToChange := m.rng.Intn(len(c))
 	changeLocs := c[:numToChange]
-	for i, location := range changeLocs {
+	for location := range changeLocs {
 		/* replace the string at index location with the
 		 * string returned from func rplc(i) */
-		o = replaceN(o, r, location, rplc(i))
+		o = replaceN(o, r, location, rplc())
 
 	}
 
@@ -243,8 +180,13 @@ func (m Mutator) mutateHex(ts *TestCase) error {
 	return result
 }
 
+/* Selects a string, insert, 
+ * from interestingString and an arbitrary location
+ * to insert the string into the testCase's input. 
+ * The string is inserted at this arbritrary location. 
+ */
 func (m Mutator) insertString(ts *TestCase) {
-	insert := []byte(m.interestingString(0))
+	insert := []byte(m.interestingString())
 	where := m.rng.Intn(len(ts.input) + 1)
 	if where == 0 {
 		// prepend insert to the start of ts.input
