@@ -79,8 +79,11 @@ func (m Mutator) interestingInteger() string {
 }
 
 func (m Mutator) interestingString() string {
-	longString := strings.Repeat("a", 1024)
-	candidates := []string{"%s%s%s%s%s", "%n%n%n%n%n", longString}
+	candidates := []string{
+		strings.Repeat("%s", 64),
+		strings.Repeat("%n", 64),
+		strings.Repeat("a", 1024),
+	}
 	return candidates[m.rng.Intn(len(candidates))]
 }
 
@@ -91,7 +94,12 @@ func (m Mutator) interestingFloat() string {
 }
 
 func (m Mutator) interestingHex() string {
-	candidates := []string{"0", "0x", "0x00000000", "0x0000000", "0xFFFFFFFF", "0x80000000", "0xdeadbeef", "01234567", "0xDEADBEEF", "0x0000000G"}
+	candidates := []string{
+		"0x00", "0x80", "0xFF",
+		"0x8000", "0xFFFF",
+		"0x80000000", "0xFFFFFFFF",
+		"0x8000000000000000", "0xFFFFFFFFFFFFFFFF",
+	}
 	return candidates[m.rng.Intn(len(candidates))]
 }
 
