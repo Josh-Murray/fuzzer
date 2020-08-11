@@ -209,18 +209,5 @@ func (p *permXML) permutateInput(file string) {
 
 		}
 		p.generateTestCase()
-		/*
-			p.currPerm = newXML(file)
-			plainXML(p.currPerm)
-			p.generateTestCase()
-
-			//p.currPerm = newXML(file)
-			spamElementBreadthWise(p)
-			p.generateTestCase()
-
-			//p.currPerm = newXML(file)
-			spamElementDepthWise(p)
-			p.generateTestCase()
-		*/
 	}
 }
