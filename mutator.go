@@ -61,7 +61,7 @@ func replace(o []string, changes *[]string, i int, v string) {
  * delimiters intact.
  */
 func decompose(s string) []string {
-	r := regexp.MustCompile(`([,\s]|[^,\s]+)`)
+	r := regexp.MustCompile(`([\s]|[^\s]+)`)
 	return r.FindAllString(s, -1)
 }
 
