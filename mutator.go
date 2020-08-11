@@ -70,7 +70,11 @@ func compose(o []string) string {
 }
 
 func (m Mutator) interestingInteger() string {
-	candidates := []string{"0", "-1", "-100", "100", "4294967295", "-4294967295"}
+	candidates := []string{
+		"0", "-1", "256", "65535",
+		"4294967295", "-4294967295",
+		"18446744073709551615", "-18446744073709551615",
+	}
 	return candidates[m.rng.Intn(len(candidates))]
 }
 
